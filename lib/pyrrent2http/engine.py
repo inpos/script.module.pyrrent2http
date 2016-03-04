@@ -8,11 +8,7 @@ import time
 import urllib2
 import httplib
 from os.path import dirname
-#from download import LibraryManager
-
 import pyrrent2http
-
-#import logpipe
 import mimetypes
 import xbmc
 from error import Error
