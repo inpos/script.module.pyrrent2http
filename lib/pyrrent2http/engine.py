@@ -229,7 +229,7 @@ class Engine:
             any file requested
         """
         self.platform = self.platform or Platform()
-        binary_path = self._get_binary_path(self.binaries_path)
+#        binary_path = self._get_binary_path(self.binaries_path)
         download_path = self._validate_save_path(self.download_path)
         if not can_bind(self.bind_host, self.bind_port):
             port = find_free_port(self.bind_host)
