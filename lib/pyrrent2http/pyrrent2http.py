@@ -3,15 +3,19 @@
 import argparse
 import sys, os
 import json
+
 try:
-    import libtorrent as lt
-except:
+    import xbmcgui
+    from python_libtorrent import get_libtorrent
+    lt=get_libtorrent()
+    print('Imported libtorrent v%s from python_libtorrent' %(lt.version, ))
+except Exception, e:
+    print('Error importing python_libtorrent.Exception: %s' %(str(e),))
     try:
-        sys.path.append(os.path.dirname(os.path.realpath(__file__)))
         import libtorrent as lt
     except Exception as e:
         strerror = e.args
-        logging.error(strerror)
+        print(strerror)
         sys.exit(1)
 from random import SystemRandom
 import time

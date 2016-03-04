@@ -441,13 +441,13 @@ class Engine:
     def is_alive(self):
         return self.pyrrent2http_loop.is_alive()
 
-    @staticmethod
+    __to_del = '''@staticmethod
     def _decode(response):
         try:
             return json.loads(response)
         except (KeyError, ValueError), e:
             raise Error("Can't decode response from pyrrent2http: %r" % e, Error.REQUEST_ERROR)
-
+'''
     __to_del = '''def _request(self, cmd, timeout=None):
         if not self.started:
             raise Error("pyrrent2http is not started", Error.REQUEST_ERROR)
@@ -483,27 +483,28 @@ class Engine:
         Shuts down pyrrent2http and stops logging. If wait_on_close() was called earlier, it will wait until
         pyrrent2http successfully exits.
         """
-        if self.logpipe and self.wait_on_close_timeout is None:
-            self.logpipe.close()
+#        if self.logpipe and self.wait_on_close_timeout is None:
+#            self.logpipe.close()
         if self.is_alive():
             self._log("Shutting down pyrrent2http...")
-            self._request('shutdown')
+#           self._request('shutdown')
+            self.pyrrent2http.shutdown()
             finished = False
             if self.wait_on_close_timeout is not None:
                 start = time.time()
-                os.close(self.logpipe.write_fd)
+#                os.close(self.logpipe.write_fd)
                 while (time.time() - start) < self.wait_on_close_timeout:
                     time.sleep(0.5)
                     if not self.is_alive():
                         finished = True
                         break
                 if not finished:
-                    self._log("Timeout occurred while shutting down pyrrent2http, killing it")
-                    self.process.kill()
+                    self._log("PANIC: Timeout occurred while shutting down pyrrent2http thread")
+                    #self.process.kill()
                 else:
                     self._log("pyrrent2http successfully shut down.")
                 self.wait_on_close_timeout = None
-            self.process.wait()
+#            self.process.wait()
         self.started = False
         self.logpipe = None
         self.process = None
