@@ -1044,6 +1044,7 @@ class Pyrrent2http(object):
                 if (not self.config.keepComplete or not file.IsComplete()) and (not self.config.keepIncomplete or file.IsComplete()):
                     if os.path.exists(file.SavePath()):
                         files.append(file.SavePath())
+        return files
     def removeTorrent(self):
         files = []
         flag = 0
