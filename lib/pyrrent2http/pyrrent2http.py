@@ -203,9 +203,9 @@ class TorrentFile(object):
             BUF_SIZE = 20   # количество блоковв буфере
             for i in range(BUF_SIZE):
                 if (next_piece + i < self.endPiece and 
-                    not self.pieces_deadlined[(next_piece + i)- self.startPiece] and not self.havePiece(next_piece + i)):
+                    not self.pieces_deadlined[(next_piece + i) - self.startPiece] and not self.havePiece(next_piece + i)):
                     self.tfs.handle.set_piece_deadline(next_piece + i, 70 + (20 * i))
-                    self.pieces_deadlined[next_piece + i] = True
+                    self.pieces_deadlined[(next_piece + i) - self.startPiece] = True
         if not self.havePiece(piece):
             self.log('Waiting for piece %d' % (piece,))
             self.tfs.handle.set_piece_deadline(piece, 50)
