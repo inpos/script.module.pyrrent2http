@@ -489,8 +489,7 @@ class Engine:
         """
 #        if self.logpipe and self.wait_on_close_timeout is None:
 #            self.logpipe.close()
-###        if self.is_alive():
-        if True:
+        if self.is_alive():
             self._log("Shutting down pyrrent2http...")
 #           self._request('shutdown')
             self.pyrrent2http.shutdown()
