@@ -21,6 +21,7 @@ from . import SessionStatus, FileStatus, PeerInfo, MediaType, Encryption
 from util import can_bind, find_free_port, ensure_fs_encoding
 import threading
 
+LOGGING = True
 
 class Engine:
     """
@@ -202,6 +203,7 @@ class Engine:
         self.logpipe = None
 #        self.process = None
         self.started = False
+        self.pyrrent2http_loop = None
 
     @staticmethod
     def _validate_save_path(path):
@@ -302,9 +304,11 @@ class Engine:
             def __init__(self, _log):
                 self._log = _log
             def info(self, message):
-                self._log('INFO: %s' % (message,))
+                if LOGGING:
+                    self._log('INFO: %s' % (message,))
             def error(self, message):
-                self._log('ERROR: %s' % (message,))
+                if LOGGING:
+                    self._log('ERROR: %s' % (message,))
         pyrrent2http.logging = Logging(self._log)
 #        startupinfo = None
 #        if self.platform.system == "windows":
@@ -485,7 +489,8 @@ class Engine:
         """
 #        if self.logpipe and self.wait_on_close_timeout is None:
 #            self.logpipe.close()
-        if self.is_alive():
+###        if self.is_alive():
+        if True:
             self._log("Shutting down pyrrent2http...")
 #           self._request('shutdown')
             self.pyrrent2http.shutdown()

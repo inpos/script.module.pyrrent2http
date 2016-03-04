@@ -28,7 +28,7 @@ import io
 import socket
 
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
 
 ######################################################################################
 
@@ -1063,6 +1063,7 @@ class Pyrrent2http(object):
 if __name__ == '__main__':
     try:
         import logging
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
         pyrrent2http = Pyrrent2http()
         pyrrent2http.parseFlags()
     
