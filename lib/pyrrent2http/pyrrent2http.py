@@ -533,21 +533,7 @@ def HttpHandlerFactory():
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            retFiles = {'files': []}
-            if self.server.root_obj.TorrentFS.HasTorrentInfo():
-                files = self.server.root_obj.TorrentFS.Files()
-                for file_ in files:
-                    Url = 'http://' + self.server.root_obj.config.bindAddress + '/files/' + urllib.quote(file_.Name())
-                    fi = {
-                          'name':       file_.Name(),
-                          'size':       file_.size,
-                          'offset':     file_.offset,
-                          'download':   file_.Downloaded(),
-                          'progress':   file_.Progress(),
-                          'save_path':   file_.SavePath(),
-                          'url':        Url
-                          }
-                    retFiles['files'].append(fi)
+            retFiles = self.server.root_obj.Ls()
             output = json.dumps(retFiles)
             self.wfile.write(output)
         def peersHandler(self):
@@ -889,6 +875,23 @@ class Pyrrent2http(object):
                      'total_peers'     :   tstatus.num_incomplete
                      }
         return status
+    def Ls(self):
+        retFiles = {'files': []}
+        if self.TorrentFS.HasTorrentInfo():
+            files = self.TorrentFS.Files()
+            for file_ in files:
+                Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(file_.Name())
+                fi = {
+                      'name':       file_.Name(),
+                      'size':       file_.size,
+                      'offset':     file_.offset,
+                      'download':   file_.Downloaded(),
+                      'progress':   file_.Progress(),
+                      'save_path':   file_.SavePath(),
+                      'url':        Url
+                      }
+                retFiles['files'].append(fi)
+        return retFiles
     def stats(self):
         status = self.torrentHandle.status()
         dhtStatusStr = ''

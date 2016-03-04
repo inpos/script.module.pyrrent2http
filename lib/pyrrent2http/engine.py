@@ -399,7 +399,7 @@ class Engine:
         :rtype : list of FileStatus
         :return: List of files of specified media types or None if torrent is not loaded yet
         """
-        files = self._decode(self._request('ls', timeout))['files']
+        files = self.pyrrent2http.Ls()['files']
         if files:
             res = [FileStatus(index=index, media_type=self._detect_media_type(f['name']), **f)
                    for index, f in enumerate(files)]
