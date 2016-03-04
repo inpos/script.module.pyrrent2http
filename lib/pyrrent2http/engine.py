@@ -22,12 +22,12 @@ from util import can_bind, find_free_port, ensure_fs_encoding
 
 class Engine:
     """
-    This is python binding class to torrent2http client.
+    This is python binding class to pyrrent2http client.
     """
     SUBTITLES_FORMATS = ['.aqt', '.gsub', '.jss', '.sub', '.ttxt', '.pjs', '.psb', '.rt', '.smi', '.stl',
                          '.ssf', '.srt', '.ssa', '.ass', '.usf', '.idx']
 
-    def _ensure_binary_executable(self, path):
+    __to_del = '''def _ensure_binary_executable(self, path):
         st = os.stat(path)
         if not st.st_mode & stat.S_IEXEC:
             try:
@@ -44,19 +44,19 @@ class Engine:
                 self._log("Failed")
                 return False
         return True
-    
+    '''
     def _log(self, message):
         if self.logger:
             self.logger(message)
         else:
-            xbmc.log("[torrent2http] %s" % message)
+            xbmc.log("[pyrrent2http] %s" % message)
 
-    def _get_binary_path(self, binaries_path):
+    __to_del = '''def _get_binary_path(self, binaries_path):
         """
-        Detects platform and returns corresponding torrent2http binary path
+        Detects platform and returns corresponding pyrrent2http binary path
 
         :param binaries_path:
-        :return: torrent2http binary path
+        :return: pyrrent2http binary path
         """
         binary = "torrent2http" + (".exe" if self.platform.system == 'windows' else "")
         binary_dir = os.path.join(binaries_path, "%s_%s" % (self.platform.system, self.platform.arch))
@@ -94,8 +94,8 @@ class Engine:
                             "partition is in read/write mode" % binary_path, Error.NOEXEC_FILESYSTEM)
         self._log("Selected %s as torrent2http binary" % binary_path)
         return binary_path
-
-    def __init__(self, uri=None, binaries_path=None, platform=None, download_path=".",
+'''
+    def __init__(self, uri=None, platform=None, download_path=".",
                  bind_host='127.0.0.1', bind_port=5001, connections_limit=None, download_kbps=None, upload_kbps=None,
                  enable_dht=True, enable_lsd=True, enable_natpmp=True, enable_upnp=True, enable_scrape=False,
                  log_stats=False, encryption=Encryption.ENABLED, keep_complete=False, keep_incomplete=False,
@@ -165,7 +165,7 @@ class Engine:
         self.platform = platform
         self.bind_host = bind_host
         self.bind_port = bind_port
-        self.binaries_path = binaries_path or os.path.join(dirname(dirname(dirname(os.path.abspath(__file__)))), 'bin')
+#        self.binaries_path = binaries_path or os.path.join(dirname(dirname(dirname(os.path.abspath(__file__)))), 'bin')
         self.download_path = download_path
         self.connections_limit = connections_limit
         self.download_kbps = download_kbps
@@ -222,7 +222,7 @@ class Engine:
 
     def start(self, start_index=None):
         """
-        Starts torrent2http client with specified settings. If it can be started in startup_timeout seconds, exception
+        Starts pyrrent2http client with specified settings. If it can be started in startup_timeout seconds, exception
         will be raised.
 
         :param start_index: File index to start download instantly, if not specified, downloading will be paused, until
@@ -234,49 +234,49 @@ class Engine:
         if not can_bind(self.bind_host, self.bind_port):
             port = find_free_port(self.bind_host)
             if port is False:
-                raise Error("Can't find port to bind torrent2http", Error.BIND_ERROR)
+                raise Error("Can't find port to bind pyrrent2http", Error.BIND_ERROR)
             self._log("Can't bind to %s:%s, so we found another port: %d" % (self.bind_host, self.bind_port, port))
             self.bind_port = port
 
         kwargs = {
-            '--bind': "%s:%s" % (self.bind_host, self.bind_port),
-            '--uri': self.uri,
-            '--file-index': start_index,
-            '--dl-path': download_path,
-            '--connections-limit': self.connections_limit,
-            '--dl-rate': self.download_kbps,
-            '--ul-rate': self.upload_kbps,
-            '--enable-dht': self.enable_dht,
-            '--enable-lsd': self.enable_lsd,
-            '--enable-natpmp': self.enable_natpmp,
-            '--enable-upnp': self.enable_upnp,
-            '--enable-scrape': self.enable_scrape,
-            '--encryption': self.encryption,
-            '--show-stats': self.log_stats,
-            '--files-progress': self.log_files_progress,
-            '--overall-progress': self.log_overall_progress,
-            '--pieces-progress': self.log_pieces_progress,
-            '--listen-port': self.listen_port,
-            '--random-port': self.use_random_port,
-            '--keep-complete': self.keep_complete,
-            '--keep-incomplete': self.keep_incomplete,
-            '--keep-files': self.keep_files,
-            '--max-idle': self.max_idle_timeout,
-            '--no-sparse': self.no_sparse,
-            '--resume-file': self.resume_file,
-            '--user-agent': self.user_agent,
-            '--state-file': self.state_file,
-            '--enable-utp': self.enable_utp,
-            '--enable-tcp': self.enable_tcp,
-            '--debug-alerts': self.debug_alerts,
-            '--torrent-connect-boost': self.torrent_connect_boost,
-            '--connection-speed': self.connection_speed,
-            '--peer-connect-timeout': self.peer_connect_timeout,
-            '--request-timeout': self.request_timeout,
-            '--min-reconnect-time': self.min_reconnect_time,
-            '--max-failcount': self.max_failcount,
-            '--dht-routers': ",".join(self.dht_routers),
-            '--trackers': ",".join(self.trackers),
+            'bind': "%s:%s" % (self.bind_host, self.bind_port),
+            'uri': self.uri,
+            'file-index': start_index,
+            'dl-path': download_path,
+            'connections-limit': self.connections_limit,
+            'dl-rate': self.download_kbps,
+            'ul-rate': self.upload_kbps,
+            'enable-dht': self.enable_dht,
+            'enable-lsd': self.enable_lsd,
+            'enable-natpmp': self.enable_natpmp,
+            'enable-upnp': self.enable_upnp,
+            'enable-scrape': self.enable_scrape,
+            'encryption': self.encryption,
+            'show-stats': self.log_stats,
+            'files-progress': self.log_files_progress,
+            'overall-progress': self.log_overall_progress,
+            'pieces-progress': self.log_pieces_progress,
+            'listen-port': self.listen_port,
+            'random-port': self.use_random_port,
+            'keep-complete': self.keep_complete,
+            'keep-incomplete': self.keep_incomplete,
+            'keep-files': self.keep_files,
+            'max-idle': self.max_idle_timeout,
+            'no-sparse': self.no_sparse,
+            'resume-file': self.resume_file,
+            'user-agent': self.user_agent,
+            'state-file': self.state_file,
+            'enable-utp': self.enable_utp,
+            'enable-tcp': self.enable_tcp,
+            'debug-alerts': self.debug_alerts,
+            'torrent-connect-boost': self.torrent_connect_boost,
+            'connection-speed': self.connection_speed,
+            'peer-connect-timeout': self.peer_connect_timeout,
+            'request-timeout': self.request_timeout,
+            'min-reconnect-time': self.min_reconnect_time,
+            'max-failcount': self.max_failcount,
+            'dht-routers': ",".join(self.dht_routers),
+            'trackers': ",".join(self.trackers),
         }
 
         args = [binary_path]
@@ -306,7 +306,7 @@ class Engine:
         try:
             self.process = subprocess.Popen(args, stderr=self.logpipe, stdout=self.logpipe, startupinfo=startupinfo)
         except OSError, e:
-            raise Error("Can't start torrent2http: %r" % e, Error.POPEN_ERROR)
+            raise Error("Can't start pyrrent2http: %r" % e, Error.POPEN_ERROR)
 
         start = time.time()
         self.started = True
@@ -314,7 +314,7 @@ class Engine:
         while (time.time() - start) < self.startup_timeout:
             time.sleep(0.1)
             if not self.is_alive():
-                raise Error("Can't start torrent2http, see log for details", Error.PROCESS_ERROR)
+                raise Error("Can't start pyrrent2http, see log for details", Error.PROCESS_ERROR)
             try:
                 self.status(1)
                 initialized = True
@@ -324,14 +324,14 @@ class Engine:
 
         if not initialized:
             self.started = False
-            raise Error("Can't start torrent2http, time is out", Error.TIMEOUT)
-        self._log("torrent2http successfully started.")
+            raise Error("Can't start pyrrent2http, time is out", Error.TIMEOUT)
+        self._log("pyrrent2http successfully started.")
 
     def check_torrent_error(self, status=None):
         """
         It is recommended to call this method periodically to check if any libtorrent errors occurred.
         Usually libtorrent sets error if it can't download or parse torrent file by specified URI.
-        Note that torrent2http remains started after such error, so you need to shutdown it manually.
+        Note that pyrrent2http remains started after such error, so you need to shutdown it manually.
 
         :param status: Pass return of status() method if you don't want status() called twice
         """
@@ -345,7 +345,7 @@ class Engine:
         Returns libtorrent session status. See SessionStatus named tuple.
 
         :rtype : SessionStatus
-        :param timeout: torrent2http client request timeout
+        :param timeout: pyrrent2http client request timeout
         """
         status = self._decode(self._request('status', timeout))
         status = SessionStatus(**status)
@@ -370,11 +370,11 @@ class Engine:
     def list(self, media_types=None, timeout=10):
         """
         Returns list of files in the torrent (see FileStatus named tuple).
-        Note that it will return None if torrent file is not loaded yet by torrent2http client, so you may need to call
+        Note that it will return None if torrent file is not loaded yet by pyrrent2http client, so you may need to call
         this method periodically until results are returned.
 
         :param media_types: List of media types (see MediaType constants)
-        :param timeout: torrent2http client request timeout
+        :param timeout: pyrrent2http client request timeout
         :rtype : list of FileStatus
         :return: List of files of specified media types or None if torrent is not loaded yet
         """
@@ -389,11 +389,11 @@ class Engine:
     def file_status(self, file_index, timeout=10):
         """
         Returns file in the torrent with specified index (see FileStatus named tuple)
-        Note that it will return None if torrent file is not loaded yet by torrent2http client, so you may need to call
+        Note that it will return None if torrent file is not loaded yet by pyrrent2http client, so you may need to call
         this method periodically until results are returned.
 
         :param file_index: Requested file's index
-        :param timeout: torrent2http client request timeout
+        :param timeout: pyrrent2http client request timeout
         :return: File with specified index
         :rtype: FileStatus
         """
@@ -409,7 +409,7 @@ class Engine:
         """
         Returns list of peers connected (see PeerInfo named tuple).
 
-        :param timeout: torrent2http client request timeout
+        :param timeout: pyrrent2http client request timeout
         :return: List of peers
         :rtype: list of PeerInfo
         """
@@ -425,11 +425,11 @@ class Engine:
         try:
             return json.loads(response)
         except (KeyError, ValueError), e:
-            raise Error("Can't decode response from torrent2http: %r" % e, Error.REQUEST_ERROR)
+            raise Error("Can't decode response from pyrrent2http: %r" % e, Error.REQUEST_ERROR)
 
     def _request(self, cmd, timeout=None):
         if not self.started:
-            raise Error("torrent2http is not started", Error.REQUEST_ERROR)
+            raise Error("pyrrent2http is not started", Error.REQUEST_ERROR)
         try:
             url = "http://%s:%s/%s" % (self.bind_host, self.bind_port, cmd)
             kwargs = {}
@@ -438,34 +438,34 @@ class Engine:
             return urllib2.urlopen(url, **kwargs).read()
         except (urllib2.URLError, httplib.HTTPException) as e:
             if isinstance(e, urllib2.URLError) and isinstance(e.reason, socket.timeout):
-                raise Error("Timeout occurred while sending command '%s' to torrent2http" % cmd, Error.TIMEOUT)
+                raise Error("Timeout occurred while sending command '%s' to pyrrent2http" % cmd, Error.TIMEOUT)
             elif not self.is_alive() and self.started:
-                raise Error("torrent2http has crashed.", Error.CRASHED)
+                raise Error("pyrrent2http has crashed.", Error.CRASHED)
             else:
-                raise Error("Can't send command '%s' to torrent2http: %r" % (cmd, e), Error.REQUEST_ERROR)
+                raise Error("Can't send command '%s' to pyrrent2http: %r" % (cmd, e), Error.REQUEST_ERROR)
         except socket.error as e:
             reason = e[1] if isinstance(e, tuple) else e
-            raise Error("Can't read from torrent2http: %s" % reason, Error.REQUEST_ERROR)
+            raise Error("Can't read from pyrrent2http: %s" % reason, Error.REQUEST_ERROR)
 
     def wait_on_close(self, wait_timeout=10):
         """
-        By default, close() method sends shutdown command to torrent2http, stops logging and returns immediately, not
-        waiting while torrent2http exits. It can be handy to wait torrent2http to view log messages during shutdown.
+        By default, close() method sends shutdown command to pyrrent2http, stops logging and returns immediately, not
+        waiting while pyrrent2http exits. It can be handy to wait pyrrent2http to view log messages during shutdown.
         So call this method with reasonable timeout before calling close().
 
-        :param wait_timeout: Time in seconds to wait until torrent2http client shut down
+        :param wait_timeout: Time in seconds to wait until pyrrent2http client shut down
         """
         self.wait_on_close_timeout = wait_timeout
 
     def close(self):
         """
-        Shuts down torrent2http and stops logging. If wait_on_close() was called earlier, it will wait until
-        torrent2http successfully exits.
+        Shuts down pyrrent2http and stops logging. If wait_on_close() was called earlier, it will wait until
+        pyrrent2http successfully exits.
         """
         if self.logpipe and self.wait_on_close_timeout is None:
             self.logpipe.close()
         if self.is_alive():
-            self._log("Shutting down torrent2http...")
+            self._log("Shutting down pyrrent2http...")
             self._request('shutdown')
             finished = False
             if self.wait_on_close_timeout is not None:
@@ -477,10 +477,10 @@ class Engine:
                         finished = True
                         break
                 if not finished:
-                    self._log("Timeout occurred while shutting down torrent2http, killing it")
+                    self._log("Timeout occurred while shutting down pyrrent2http, killing it")
                     self.process.kill()
                 else:
-                    self._log("torrent2http successfully shut down.")
+                    self._log("pyrrent2http successfully shut down.")
                 self.wait_on_close_timeout = None
             self.process.wait()
         self.started = False
