@@ -662,7 +662,7 @@ class Pyrrent2http(object):
             if uriPath != '' and sys.platform.startswith('win') and (os.path.sep == uriPath[0] or uriPath[0] == '/'):
                 uriPath = uriPath[1:]
             try:
-                absPath = os.path.abspath(uriPath)
+                absPath = os.path.abspath(urllib.unquote(uriPath))
                 logging.info('Opening local file: %s' % (absPath,))
                 with open(absPath, 'rb') as f:
                     torrent_info = lt.torrent_info(lt.bdecode(f.read()))
