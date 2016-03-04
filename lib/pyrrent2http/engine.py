@@ -3,21 +3,23 @@ import json
 import os
 import socket
 import stat
-import subprocess
 import sys
 import time
 import urllib2
 import httplib
 from os.path import dirname
-from download import LibraryManager
+#from download import LibraryManager
 
-import logpipe
+import pyrrent2http
+
+#import logpipe
 import mimetypes
 import xbmc
 from error import Error
 from platform import Platform
 from . import SessionStatus, FileStatus, PeerInfo, MediaType, Encryption
 from util import can_bind, find_free_port, ensure_fs_encoding
+import threading
 
 
 class Engine:
@@ -198,7 +200,7 @@ class Engine:
         self.logger = logger
         self.uri = uri
         self.logpipe = None
-        self.process = None
+#        self.process = None
         self.started = False
 
     @staticmethod
@@ -239,47 +241,47 @@ class Engine:
             self.bind_port = port
 
         kwargs = {
-            'bind': "%s:%s" % (self.bind_host, self.bind_port),
-            'uri': self.uri,
-            'file-index': start_index,
-            'dl-path': download_path,
-            'connections-limit': self.connections_limit,
-            'dl-rate': self.download_kbps,
-            'ul-rate': self.upload_kbps,
-            'enable-dht': self.enable_dht,
-            'enable-lsd': self.enable_lsd,
-            'enable-natpmp': self.enable_natpmp,
-            'enable-upnp': self.enable_upnp,
-            'enable-scrape': self.enable_scrape,
-            'encryption': self.encryption,
-            'show-stats': self.log_stats,
-            'files-progress': self.log_files_progress,
-            'overall-progress': self.log_overall_progress,
-            'pieces-progress': self.log_pieces_progress,
-            'listen-port': self.listen_port,
-            'random-port': self.use_random_port,
-            'keep-complete': self.keep_complete,
-            'keep-incomplete': self.keep_incomplete,
-            'keep-files': self.keep_files,
-            'max-idle': self.max_idle_timeout,
-            'no-sparse': self.no_sparse,
-            'resume-file': self.resume_file,
-            'user-agent': self.user_agent,
-            'state-file': self.state_file,
-            'enable-utp': self.enable_utp,
-            'enable-tcp': self.enable_tcp,
-            'debug-alerts': self.debug_alerts,
-            'torrent-connect-boost': self.torrent_connect_boost,
-            'connection-speed': self.connection_speed,
-            'peer-connect-timeout': self.peer_connect_timeout,
-            'request-timeout': self.request_timeout,
-            'min-reconnect-time': self.min_reconnect_time,
-            'max-failcount': self.max_failcount,
-            'dht-routers': ",".join(self.dht_routers),
-            'trackers': ",".join(self.trackers),
+            '--bind': "%s:%s" % (self.bind_host, self.bind_port),
+            '--uri': self.uri,
+            '--file-index': start_index,
+            '--dl-path': download_path,
+            '--connections-limit': self.connections_limit,
+            '--dl-rate': self.download_kbps,
+            '--ul-rate': self.upload_kbps,
+            '--enable-dht': self.enable_dht,
+            '--enable-lsd': self.enable_lsd,
+            '--enable-natpmp': self.enable_natpmp,
+            '--enable-upnp': self.enable_upnp,
+            '--enable-scrape': self.enable_scrape,
+            '--encryption': self.encryption,
+            '--show-stats': self.log_stats,
+            '--files-progress': self.log_files_progress,
+            '--overall-progress': self.log_overall_progress,
+            '--pieces-progress': self.log_pieces_progress,
+            '--listen-port': self.listen_port,
+            '--random-port': self.use_random_port,
+            '--keep-complete': self.keep_complete,
+            '--keep-incomplete': self.keep_incomplete,
+            '--keep-files': self.keep_files,
+            '--max-idle': self.max_idle_timeout,
+            '--no-sparse': self.no_sparse,
+            '--resume-file': self.resume_file,
+            '--user-agent': self.user_agent,
+            '--state-file': self.state_file,
+            '--enable-utp': self.enable_utp,
+            '--enable-tcp': self.enable_tcp,
+            '--debug-alerts': self.debug_alerts,
+            '--torrent-connect-boost': self.torrent_connect_boost,
+            '--connection-speed': self.connection_speed,
+            '--peer-connect-timeout': self.peer_connect_timeout,
+            '--request-timeout': self.request_timeout,
+            '--min-reconnect-time': self.min_reconnect_time,
+            '--max-failcount': self.max_failcount,
+            '--dht-routers': ",".join(self.dht_routers),
+            '--trackers': ",".join(self.trackers),
         }
 
-        args = [binary_path]
+        args = []
         for k, v in kwargs.iteritems():
             if v is not None:
                 if isinstance(v, bool):
@@ -295,18 +297,37 @@ class Engine:
                         v = str(v)
                     args.append(v)
 
-        self._log("Invoking %s" % " ".join(args))
-        startupinfo = None
-        if self.platform.system == "windows":
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= 1
-            startupinfo.wShowWindow = 0
+        self._log("Invoking pyrrent2http")
+        class Logging(object):
+            def __init__(self, _log):
+                self._log = _log
+            def info(self, message):
+                self._log('INFO: %s' % (message,))
+            def error(self, message):
+                self._log('ERROR: %s' % (message,))
+        pyrrent2http.logging = Logging(self._log)
+#        startupinfo = None
+#        if self.platform.system == "windows":
+#            startupinfo = subprocess.STARTUPINFO()
+#            startupinfo.dwFlags |= 1
+#            startupinfo.wShowWindow = 0
+#
+#        self.logpipe = logpipe.LogPipe(self._log)
+#        try:
+#            self.process = subprocess.Popen(args, stderr=self.logpipe, stdout=self.logpipe, startupinfo=startupinfo)
+#        except OSError, e:
+#            raise Error("Can't start pyrrent2http: %r" % e, Error.POPEN_ERROR)
 
-        self.logpipe = logpipe.LogPipe(self._log)
-        try:
-            self.process = subprocess.Popen(args, stderr=self.logpipe, stdout=self.logpipe, startupinfo=startupinfo)
-        except OSError, e:
-            raise Error("Can't start pyrrent2http: %r" % e, Error.POPEN_ERROR)
+        
+        self.pyrrent2http = pyrrent2http.Pyrrent2http()
+        self.pyrrent2http.parseFlags(kwargs)
+        self.pyrrent2http.startSession()
+        self.pyrrent2http.startServices()
+        self.pyrrent2http.addTorrent()
+        self.pyrrent2http.startHTTP()
+        self.pyrrent2http_loop = threading.Thread(target = self.pyrrent2http.loop, args = (False,))
+        self.pyrrent2http_loop.start()
+        
 
         start = time.time()
         self.started = True
@@ -418,7 +439,7 @@ class Engine:
             return [PeerInfo(**p) for p in peers]
 
     def is_alive(self):
-        return self.process and self.process.poll() is None
+        return self.pyrrent2http_loop.is_alive()
 
     @staticmethod
     def _decode(response):
@@ -427,7 +448,7 @@ class Engine:
         except (KeyError, ValueError), e:
             raise Error("Can't decode response from pyrrent2http: %r" % e, Error.REQUEST_ERROR)
 
-    def _request(self, cmd, timeout=None):
+    __to_del = '''def _request(self, cmd, timeout=None):
         if not self.started:
             raise Error("pyrrent2http is not started", Error.REQUEST_ERROR)
         try:
@@ -446,7 +467,7 @@ class Engine:
         except socket.error as e:
             reason = e[1] if isinstance(e, tuple) else e
             raise Error("Can't read from pyrrent2http: %s" % reason, Error.REQUEST_ERROR)
-
+'''
     def wait_on_close(self, wait_timeout=10):
         """
         By default, close() method sends shutdown command to pyrrent2http, stops logging and returns immediately, not

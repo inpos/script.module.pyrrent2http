@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import argparse
 import sys, os
-import logging
 import json
 try:
     import libtorrent as lt
@@ -21,7 +20,6 @@ import platform
 import BaseHTTPServer
 import SocketServer
 import threading
-import signal
 import io
 import socket
 
@@ -635,7 +633,7 @@ class Pyrrent2http(object):
         self.forceShutdown = False
         self.session = None
         self.magnet = False
-    def parseFlags(self):
+    def parseFlags(self, params = None):
         parser = argparse.ArgumentParser(add_help=True, version=VERSION)
         parser.add_argument('--uri', type=str, default='', help='Magnet URI or .torrent file URL', dest='uri')
         parser.add_argument('--bind', type=str, default='localhost:5001', help='Bind address of torrent2http', dest='bindAddress')
@@ -676,7 +674,10 @@ class Pyrrent2http(object):
         parser.add_argument('--enable-natpmp', nargs='?', action=BoolArg, default=True, help='Enable NATPMP (NAT port-mapping)', dest='enableNATPMP', choices=('true', 'false'))
         parser.add_argument('--enable-utp', nargs='?', action=BoolArg, default=True, help='Enable uTP protocol', dest='enableUTP', choices=('true', 'false'))
         parser.add_argument('--enable-tcp', nargs='?', action=BoolArg, default=True, help='Enable TCP protocol', dest='enableTCP', choices=('true', 'false'))
-        config_ = parser.parse_args()
+        if params is None:
+            config_ = parser.parse_args()
+        else:
+            config_ = parser.parse_args(args = params)
         self.config = AttributeDict()
         for k in config_.__dict__.keys():
             self.config[k] = config_.__dict__[k]
@@ -688,7 +689,6 @@ class Pyrrent2http(object):
         if self.config.resumeFile != '' and not self.config.keepFiles:
             logging.error('Usage of option --resume-file is allowed only along with --keep-files')
             sys.exit(1)
-    
     def buildTorrentParams(self, uri):
         fileUri = urlparse.urlparse(uri)
         torrentParams = {}
@@ -931,10 +931,12 @@ class Pyrrent2http(object):
                 alert = self.session.pop_alert()
                 if isinstance(alert, alertClass):
                     return alert
-    def loop(self):
+    def loop(self, standalone = True):
         def sigterm_handler(_signo, _stack_frame):
             self.forceShutdown = True
-        signal.signal(signal.SIGTERM, sigterm_handler)
+        if standalone:
+            import signal
+            signal.signal(signal.SIGTERM, sigterm_handler)
         self.statsTicker = Ticker(30)
         self.saveResumeDataTicker = Ticker(5)
         time_start = time.time()
@@ -1026,6 +1028,7 @@ class Pyrrent2http(object):
             self.removeFiles(files)
     def shutdown(self):
         logging.info('Stopping pyrrent2http...')
+        self.forceShutdown = True
         self.statsTicker.stop()
         self.saveResumeDataTicker.stop()
         self.httpListener.shutdown()
@@ -1043,8 +1046,11 @@ class Pyrrent2http(object):
         logging.info('Bye bye')
         sys.exit(0)
 
+
+
 if __name__ == '__main__':
     try:
+        import logging
         pyrrent2http = Pyrrent2http()
         pyrrent2http.parseFlags()
     
