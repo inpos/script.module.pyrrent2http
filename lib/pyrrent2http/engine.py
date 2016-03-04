@@ -320,7 +320,7 @@ class Engine:
 
         
         self.pyrrent2http = pyrrent2http.Pyrrent2http()
-        self.pyrrent2http.parseFlags(kwargs)
+        self.pyrrent2http.parseFlags(args)
         self.pyrrent2http.startSession()
         self.pyrrent2http.startServices()
         self.pyrrent2http.addTorrent()
@@ -434,7 +434,7 @@ class Engine:
         :return: List of peers
         :rtype: list of PeerInfo
         """
-        peers = self._decode(self._request('peers', timeout))['peers']
+        peers = self.pyrrent2http.Peers()['peers']
         if peers:
             return [PeerInfo(**p) for p in peers]
 

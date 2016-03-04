@@ -540,24 +540,8 @@ def HttpHandlerFactory():
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            torrentHandle = self.server.root_obj.torrentHandle
-            ret = list()
-            for peer in torrentHandle.get_peer_info():
-                if peer.flags & peer.connecting or peer.flags & peer.handshake:
-                    continue
-                pi = {
-                       'Ip':            peer.ip,
-                       'Flags':         peer.flags,
-                       'Source':        peer.source,
-                       'UpSpeed':       peer.up_speed/1024,
-                       'DownSpeed':     peer.down_speed/1024,
-                       'TotalDownload': peer.total_download,
-                       'TotalUpload':   peer.total_upload,
-                       'Country':       peer.country,
-                       'Client':        peer.client
-                       }
-                ret.append(pi)
-            output = json.dumps(ret)
+            peers = self.server.root_obj.Peers()
+            output = json.dumps(peers)
             self.wfile.write(output)
         def trackersHandler(self):
             self.send_response(200)
@@ -565,9 +549,9 @@ def HttpHandlerFactory():
             self.end_headers()
             ret = list()
             try:
-                self.info = self.server.root_obj.torrentHandler.torrent_file()
+                info = self.server.root_obj.torrentHandler.torrent_file()
             except:
-                self.info = self.server.root_obj.torrentHandler.get_torrent_info()
+                info = self.server.root_obj.torrentHandler.get_torrent_info()
             for tracker in info.trackers():
                 pi = {
                         'Url':                tracker.url,
@@ -588,6 +572,7 @@ def HttpHandlerFactory():
                 ret.append(pi)
             output = json.dumps(ret)
             self.wfile.write(output)
+        # Вырубаем access-log
         def log_message(self, format, *args):
             return
     return HttpHandler
@@ -892,6 +877,24 @@ class Pyrrent2http(object):
                       }
                 retFiles['files'].append(fi)
         return retFiles
+    def Peers(self):
+        peers = {'peers': []}
+        for peer in self.torrentHandle.get_peer_info():
+            if peer.flags & peer.connecting or peer.flags & peer.handshake:
+                continue
+            pi = {
+                   'Ip':            peer.ip,
+                   'Flags':         peer.flags,
+                   'Source':        peer.source,
+                   'UpSpeed':       peer.up_speed/1024,
+                   'DownSpeed':     peer.down_speed/1024,
+                   'TotalDownload': peer.total_download,
+                   'TotalUpload':   peer.total_upload,
+                   'Country':       peer.country,
+                   'Client':        peer.client
+                   }
+            peers['peers'].append(pi)
+        return peers
     def stats(self):
         status = self.torrentHandle.status()
         dhtStatusStr = ''
