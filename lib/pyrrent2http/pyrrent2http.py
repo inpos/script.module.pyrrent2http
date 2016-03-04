@@ -21,7 +21,6 @@ except Exception, e:
         else:
             raise
 
-import libtorrent as lt
 from random import SystemRandom
 import time
 import urlparse, urllib
@@ -992,7 +991,7 @@ class Pyrrent2http(object):
                 self.saveResumeData(True)
 
     def processSaveResumeDataAlert(self, alert):
-        logging.info('Saving resume data to: %s', self.config.resumeFile)
+        logging.info('Saving resume data to: %s' % (self.config.resumeFile))
         data = lt.bencode(alert.resume_data)
         try:
             with open(self.config.resumeFile, 'wb') as f:
@@ -1015,7 +1014,7 @@ class Pyrrent2http(object):
             return
         entry = self.session.save_state()
         data = lt.bencode(entry)
-        logging.info('Saving session state to: %s', self.config.stateFile)
+        logging.info('Saving session state to: %s' % (self.config.stateFile,))
         try:
             with open(self.config.stateFile, 'wb') as f:
                 f.write(data)
