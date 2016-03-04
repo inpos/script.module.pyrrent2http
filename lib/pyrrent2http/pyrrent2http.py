@@ -16,11 +16,15 @@ except Exception, e:
     except Exception as e:
         strerror = e.args
         print(strerror)
-        sys.exit(1)
+        if STANDALONE:
+            sys.exit(1)
+        else:
+            raise
+
+import libtorrent as lt
 from random import SystemRandom
 import time
 import urlparse, urllib
-import platform
 import BaseHTTPServer
 import SocketServer
 import threading
@@ -320,7 +324,7 @@ class TorrentFS(object):
         self.openedFiles.append(file_)    
     def setPriority(self, index, priority):
         if self.priorities[index] != priority:
-            logging.info('Setting %s priority to %d', self.info.file_at(index).path, priority)
+            logging.info('Setting %s priority to %d' % (self.info.file_at(index).path, priority))
             self.priorities[index] = priority
             self.handle.file_priority(index, priority)
     def findOpenedFile(self, file):
@@ -637,12 +641,18 @@ class Pyrrent2http(object):
             self.config[k] = config_.__dict__[k]
         if self.config.uri == '':
             parser.print_usage()
-            sys.exit(1)
+            if STANDALONE:
+                sys.exit(1)
+            else:
+                raise "Invalid argument"
         if self.config.uri.startswith('magnet:'):
             self.magnet = True
         if self.config.resumeFile != '' and not self.config.keepFiles:
             logging.error('Usage of option --resume-file is allowed only along with --keep-files')
-            sys.exit(1)
+            if STANDALONE:
+                sys.exit(1)
+            else:
+                raise
     def buildTorrentParams(self, uri):
         fileUri = urlparse.urlparse(uri)
         torrentParams = {}
@@ -650,33 +660,39 @@ class Pyrrent2http(object):
             torrentParams['url'] =  uri
         elif fileUri.scheme == 'file':
             uriPath = fileUri.path
-            if uriPath != '' and platform.system().lower() == 'windows' and (os.path.sep == uriPath[0] or uriPath[0] == '/'):
+            if uriPath != '' and sys.platform.startswith('win') and (os.path.sep == uriPath[0] or uriPath[0] == '/'):
                 uriPath = uriPath[1:]
             try:
                 absPath = os.path.abspath(uriPath)
-                logging.info('Opening local file: %s', absPath)
+                logging.info('Opening local file: %s' % (absPath,))
                 with open(absPath, 'rb') as f:
                     torrent_info = lt.torrent_info(lt.bdecode(f.read()))
             except Exception as e:
                 strerror = e.args
                 logging.error(strerror)
-                sys.exit(1)
+                if STANDALONE:
+                    sys.exit(1)
+                else:
+                    raise
             torrentParams['ti'] = torrent_info
         else:
-            logging.info('Will fetch: %s', uri)
+            logging.info('Will fetch: %s' % (uri,))
             try:
                 torrent_raw = urllib.urlopen(uri).read()
                 torrent_info = lt.torrent_info(torrent_raw, len(torrent_raw))
             except Exception as e:
                 strerror = e.args
                 logging.error(strerror)
-                sys.exit(1)
+                if STANDALONE:
+                    sys.exit(1)
+                else:
+                    raise
             torrentParams['ti'] = torrent_info
-        logging.info('Setting save path: %s', self.config.downloadPath)
+        logging.info('Setting save path: %s' % (self.config.downloadPath,))
         torrentParams['save_path'] = self.config.downloadPath
         
         if os.path.exists(self.config.resumeFile):
-            logging.info('Loading resume file: %s', self.config.resumeFile)
+            logging.info('Loading resume file: %s' % (self.config.resumeFile,))
             try:
                 with open(self.config.resumeFile, 'rb') as f:
                     torrentParams['resume_data'] = lt.bencode(f.read())
@@ -711,7 +727,7 @@ class Pyrrent2http(object):
             info = self.torrentHandle.torrent_file()
         except:
             info = self.torrentHandle.get_torrent_info()
-        logging.info('Downloading torrent: %s', info.name())
+        logging.info('Downloading torrent: %s' % (info.name(),))
         self.TorrentFS = TorrentFS(self, self.torrentHandle, self.config.fileIndex)
     
     def startHTTP(self):
@@ -724,7 +740,7 @@ class Pyrrent2http(object):
         #self.main_alive.set()
         logging.info('Starting HTTP Server...')
         handler = HttpHandlerFactory()
-        logging.info('Listening HTTP on %s...\n', self.config.bindAddress)
+        logging.info('Listening HTTP on %s...\n' % (self.config.bindAddress,))
         host, strport = self.config.bindAddress.split(':')
         if len(strport) > 0:
             srv_port = int(strport)
@@ -776,7 +792,7 @@ class Pyrrent2http(object):
         settings["min_announce_interval"] = 60
         settings["tracker_backoff"] = 0
         self.session.set_settings(settings)
-    
+        
         if self.config.stateFile != '':
             logging.info('Loading session state from %s', self.config.stateFile)
             try:
@@ -798,7 +814,10 @@ class Pyrrent2http(object):
         except IOError as e:
             strerror = e.args
             logging.error(strerror)
-            sys.exit(1)
+            if STANDALONE:
+                sys.exit(1)
+            else:
+                raise
         
         settings = self.session.get_settings()
         if self.config.userAgent != '':
@@ -827,9 +846,12 @@ class Pyrrent2http(object):
                     except ValueError as e:
                         strerror = e.args
                         logging.error(strerror)
-                        sys.exit(1)
+                        if STANDALONE:
+                            sys.exit(1)
+                        else:
+                            raise
                     self.session.add_dht_router(host, port)
-                    logging.info('Added DHT router: %s:%d', host, port)
+                    logging.info('Added DHT router: %s:%d' % (host, port))
         logging.info('Setting encryption settings')
         try:
             encryptionSettings = lt.pe_settings()
@@ -943,10 +965,10 @@ class Pyrrent2http(object):
                 alert = self.session.pop_alert()
                 if isinstance(alert, alertClass):
                     return alert
-    def loop(self, standalone = True):
+    def loop(self):
         def sigterm_handler(_signo, _stack_frame):
             self.forceShutdown = True
-        if standalone:
+        if STANDALONE:
             import signal
             signal.signal(signal.SIGTERM, sigterm_handler)
         self.statsTicker = Ticker(30)
@@ -1056,11 +1078,15 @@ class Pyrrent2http(object):
             logging.info('Aborting the session')
             del self.session
         logging.info('Bye bye')
-        sys.exit(0)
+        if STANDALONE:
+            sys.exit(0)
+        else:
+            return
 
 
-
+STANDALONE = False
 if __name__ == '__main__':
+    STANDALONE = True
     try:
         import logging
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)

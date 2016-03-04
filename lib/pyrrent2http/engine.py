@@ -203,7 +203,7 @@ class Engine:
         self.logpipe = None
 #        self.process = None
         self.started = False
-        self.pyrrent2http_loop = None
+
 
     @staticmethod
     def _validate_save_path(path):
@@ -329,7 +329,7 @@ class Engine:
         self.pyrrent2http.startServices()
         self.pyrrent2http.addTorrent()
         self.pyrrent2http.startHTTP()
-        self.pyrrent2http_loop = threading.Thread(target = self.pyrrent2http.loop, args = (False,))
+        self.pyrrent2http_loop = threading.Thread(target = self.pyrrent2http.loop)
         self.pyrrent2http_loop.start()
         
 
