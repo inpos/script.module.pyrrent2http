@@ -526,28 +526,7 @@ def HttpHandlerFactory():
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            torrentHandle = self.server.root_obj.torrentHandle
-            try:
-                info = torrentHandle.torrent_file()
-            except:
-                info = torrentHandle.get_torrent_info()
-            
-            tstatus = torrentHandle.status()
-            status = {
-                         'name'           :   info.name(),
-                         'state'          :   int(tstatus.state),
-                         'state_str'       :   str(tstatus.state),
-                         'error'          :   tstatus.error,
-                         'progress'       :   tstatus.progress,
-                         'download_rate'   :   tstatus.download_rate / 1024,
-                         'upload_rate'     :   tstatus.upload_rate / 1024,
-                         'total_download'  :   tstatus.total_download,
-                         'total_upload'    :   tstatus.total_upload,
-                         'num_peers'       :   tstatus.num_peers,
-                         'num_seeds'       :   tstatus.num_seeds,
-                         'total_seeds'     :   tstatus.num_complete,
-                         'total_peers'     :   tstatus.num_incomplete
-                         }
+            status = self.server.root_obj.Status()
             output = json.dumps(status)
             self.wfile.write(output)
         def lsHandler(self):
@@ -886,7 +865,30 @@ class Pyrrent2http(object):
             self.session.set_pe_settings(encryptionSettings)
         except Exception as e:
             logging.info('Encryption not supported: %s' % (e.args,))
+    
+    def Status(self):
+        try:
+            info = self.torrentHandle.torrent_file()
+        except:
+            info = self.torrentHandle.get_torrent_info()
         
+        tstatus = self.torrentHandle.status()
+        status = {
+                     'name'           :   info.name(),
+                     'state'          :   int(tstatus.state),
+                     'state_str'       :   str(tstatus.state),
+                     'error'          :   tstatus.error,
+                     'progress'       :   tstatus.progress,
+                     'download_rate'   :   tstatus.download_rate / 1024,
+                     'upload_rate'     :   tstatus.upload_rate / 1024,
+                     'total_download'  :   tstatus.total_download,
+                     'total_upload'    :   tstatus.total_upload,
+                     'num_peers'       :   tstatus.num_peers,
+                     'num_seeds'       :   tstatus.num_seeds,
+                     'total_seeds'     :   tstatus.num_complete,
+                     'total_peers'     :   tstatus.num_incomplete
+                     }
+        return status
     def stats(self):
         status = self.torrentHandle.status()
         dhtStatusStr = ''

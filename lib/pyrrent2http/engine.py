@@ -368,7 +368,7 @@ class Engine:
         :rtype : SessionStatus
         :param timeout: pyrrent2http client request timeout
         """
-        status = self._decode(self._request('status', timeout))
+        status = self.pyrrent2http.Status()
         status = SessionStatus(**status)
         return status
 
