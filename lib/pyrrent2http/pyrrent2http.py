@@ -653,6 +653,8 @@ class Pyrrent2http(object):
             else:
                 raise
     def buildTorrentParams(self, uri):
+        if uri[1] == ':' and sys.platform.startswith('win'):
+            uri = 'file:///' + uri
         fileUri = urlparse.urlparse(uri)
         torrentParams = {}
         if self.magnet:
@@ -662,12 +664,7 @@ class Pyrrent2http(object):
             if uriPath != '' and sys.platform.startswith('win') and (os.path.sep == uriPath[0] or uriPath[0] == '/'):
                 uriPath = uriPath[1:]
             try:
-                if sys.platform.startswith('win'):
-                    driveLetter = uriPath[:2]
-                    wpath = uriPath[2:].replace('\\', '/')
-                    absPath = driveLetter + os.path.abspath(urllib.unquote(wpath)).replace('/', '\\')
-                else:
-                    absPath = os.path.abspath(urllib.unquote(uriPath))
+                absPath = os.path.abspath(urllib.unquote(uriPath))
                 logging.info('Opening local file: %s' % (absPath,))
                 with open(absPath, 'rb') as f:
                     torrent_info = lt.torrent_info(lt.bdecode(f.read()))
