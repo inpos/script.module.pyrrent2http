@@ -17,7 +17,7 @@ from . import SessionStatus, FileStatus, PeerInfo, MediaType, Encryption
 from util import can_bind, find_free_port, ensure_fs_encoding
 import threading
 
-LOGGING = True
+LOGGING = False
 
 class Engine:
     """

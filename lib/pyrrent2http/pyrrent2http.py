@@ -95,7 +95,7 @@ if not hasattr(os, 'getppid'):
 #################################################################################
 
 AVOID_HTTP_SERVER_EXCEPTION_OUTPUT = True
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 USER_AGENT = "pyrrent2http/" + VERSION + " libtorrent/" + lt.version
 
 VIDEO_EXTS={'.avi':'video/x-msvideo','.mp4':'video/mp4','.mkv':'video/x-matroska',
@@ -200,7 +200,7 @@ class TorrentFile(object):
     def waitForPiece(self, piece):
         def set_deadlines(p):
             next_piece = p + 1
-            BUF_SIZE = 20   # количество блоковв буфере
+            BUF_SIZE = 2   # Лучшее враг хорошего
             for i in range(BUF_SIZE):
                 if (next_piece + i < self.endPiece and 
                     not self.pieces_deadlined[(next_piece + i) - self.startPiece] and not self.havePiece(next_piece + i)):
