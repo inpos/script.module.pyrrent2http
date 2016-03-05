@@ -3,7 +3,7 @@
 import argparse
 import sys, os
 import json
-
+import chardet
 try:
     import xbmcgui
     from python_libtorrent import get_libtorrent
