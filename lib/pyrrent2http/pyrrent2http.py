@@ -5,7 +5,6 @@ import sys, os
 import json
 import chardet
 try:
-    import xbmcgui
     from python_libtorrent import get_libtorrent
     lt=get_libtorrent()
     print('Imported libtorrent v%s from python_libtorrent' %(lt.version, ))
@@ -172,7 +171,8 @@ class TorrentFile(object):
         if self.filePtr is None:
             #print('savePath: %s' % (self.savePath,))
             while not os.path.exists(self.savePath):
-                time.sleep(0.1)
+                logging.info('Waiting: %s' % (self.savePath,))
+                time.sleep(0.5)
             self.filePtr = io.open(self.savePath, 'rb')
         return self.filePtr
     def log(self, message):
@@ -375,7 +375,11 @@ class TorrentFS(object):
         if index < 0 or index >= info.num_files():
             raise IndexError
         fileEntry = info.file_at(index)
-        path = os.path.abspath(os.path.join(self.SavePath(), fileEntry.path))
+        fe_path = fileEntry.path
+        fe_path = fe_path.decode(chardet.detect(fe_path)['encoding'])
+        if not sys.platform.startswith('win'):
+            fe_path = fe_path.encode(sys.getfilesystemencoding())
+        path = os.path.abspath(os.path.join(self.SavePath(), fe_path))
         return TorrentFile(
                            self,
                            fileEntry,
@@ -383,9 +387,12 @@ class TorrentFS(object):
                            index
                            )
     def FileByName(self, name):
+        name = name.decode(chardet.detect(name)['encoding'])
+        if not sys.platform.startswith('win'):
+            name = name.encode(sys.getfilesystemencoding())
         savePath = os.path.abspath(os.path.join(self.SavePath(), name))
         for file_ in self.Files():
-            if file_.SavePath() == savePath:
+            if file_.savePath == savePath:
                 return file_
         raise IOError
     def Open(self, name):
@@ -415,8 +422,7 @@ class TorrentFS(object):
         tf.num = self.fileCounter
         tf.log('Opening %s...' % (tf.name,))
         tf.SetPriority(1)
-        startPiece, _ = tf.Pieces()
-        self.handle.set_piece_deadline(startPiece, 50)
+        self.handle.set_piece_deadline(tf.startPiece, 50)
         self.lastOpenedFile = tf
         self.addOpenedFile(tf)
         self.checkPriorities()
@@ -982,7 +988,7 @@ class Pyrrent2http(object):
             if self.forceShutdown:
                 return
             if time.time() - time_start > 0.5:
-                self.consumeAlerts()
+                #self.consumeAlerts()
                 self.TorrentFS.LoadFileProgress()
                 state = self.torrentHandle.status().state
                 if self.config.exitOnFinish and (state == state.finished or state == state.seeding):
