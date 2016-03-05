@@ -711,11 +711,12 @@ class Pyrrent2http(object):
         self.torrentParams = self.buildTorrentParams(self.config.uri)
         logging.info('Adding torrent')
         self.torrentHandle = self.session.add_torrent(self.torrentParams)
-        #self.torrentHandle.set_sequential_download(True)
+        self.torrentHandle.set_sequential_download(False)
         #
-        # Хороший флаг, но не в нашем случае. Мы сам указываем, какие куски нам нужны (handle.set_piece_deadline)
+        # Хороший флаг, но не в нашем случае. Мы сами указываем, какие куски нам нужны (handle.set_piece_deadline)
         # Также, у нас перемотка. Т.е. произвольный доступ.
         # Значит, последовательная загрузка нам будет только вредить
+        #
         if self.config.trackers != '':
             trackers    = self.config.trackers.split(',')
             startTier   = 256 - len(trackers)
