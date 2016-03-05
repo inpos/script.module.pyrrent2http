@@ -149,6 +149,8 @@ class TorrentFile(object):
     def __init__(self, tfs, fileEntry, savePath, index):
         self.tfs = tfs
         self.fileEntry = fileEntry
+        self.name = self.Name()
+        self.unicode_name = self.name.decode(chardet.detect(self.name)['encoding'])
         self.savePath = savePath
         self.index = index
         self.piece_length = int(self.pieceLength())
@@ -219,7 +221,7 @@ class TorrentFile(object):
         return True
     def Close(self):
         if self.closed: return
-        self.log('Closing %s...' % (self.Name(),))
+        self.log('Closing %s...' % (self.name,))
         self.tfs.removeOpenedFile(self)
         self.closed = True
         if self.filePtr is not None:
@@ -411,7 +413,7 @@ class TorrentFS(object):
         tf.closed = False
         self.fileCounter += 1
         tf.num = self.fileCounter
-        tf.log('Opening %s...' % (tf.Name(),))
+        tf.log('Opening %s...' % (tf.name,))
         tf.SetPriority(1)
         startPiece, _ = tf.Pieces()
         self.handle.set_piece_deadline(startPiece, 50)
@@ -892,9 +894,9 @@ class Pyrrent2http(object):
         if self.TorrentFS.HasTorrentInfo():
             files = self.TorrentFS.Files()
             for file_ in files:
-                Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(file_.Name())
+                Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(file_.name)
                 fi = {
-                      'name':       file_.Name(),
+                      'name':       file_.unicode_name,
                       'size':       file_.size,
                       'offset':     file_.offset,
                       'download':   file_.Downloaded(),
