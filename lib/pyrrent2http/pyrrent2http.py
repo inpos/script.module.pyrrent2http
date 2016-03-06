@@ -4,6 +4,7 @@ import argparse
 import sys, os
 import json
 import chardet
+STANDALONE = False
 try:
     from python_libtorrent import get_libtorrent
     lt=get_libtorrent()
@@ -673,12 +674,16 @@ class Pyrrent2http(object):
                 uriPath = uriPath[1:]
             try:
                 absPath = os.path.abspath(urllib.unquote(uriPath))
-                logging.info('Opening local file: %s' % (absPath,))
+                logging.info('Opening local torrent file: %s' % (absPath,))
                 with open(absPath, 'rb') as f:
-                    torrent_info = lt.torrent_info(lt.bdecode(f.read()))
+                    btorrent_info = f.read()
+                    logging.info(repr(btorrent_info))
+                    dtorrent_info = lt.bdecode(btorrent_info)
+                    logging.info(repr(dtorrent_info))
+                    torrent_info = lt.torrent_info(dtorrent_info)
             except Exception as e:
                 strerror = e.args
-                logging.error(strerror)
+                logging.error('Build torrent params error is (%s)' % (strerror,))
                 if STANDALONE:
                     sys.exit(1)
                 else:
@@ -1095,7 +1100,7 @@ class Pyrrent2http(object):
             return
 
 
-STANDALONE = False
+
 if __name__ == '__main__':
     STANDALONE = True
     try:
