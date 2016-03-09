@@ -28,7 +28,7 @@ import BaseHTTPServer
 import SocketServer
 import threading
 import io
-import socket
+from util import localize_path
 
 
 
@@ -377,10 +377,7 @@ class TorrentFS(object):
             raise IndexError
         fileEntry = info.file_at(index)
         fe_path = fileEntry.path
-        fe_path = fe_path.decode(chardet.detect(fe_path)['encoding'])
-        if not sys.platform.startswith('win'):
-            fe_path = fe_path.encode(sys.getfilesystemencoding())
-        path = os.path.abspath(os.path.join(self.SavePath(), fe_path))
+        path = os.path.abspath(os.path.join(self.SavePath(), localize_path(fe_path)))
         return TorrentFile(
                            self,
                            fileEntry,
@@ -388,10 +385,7 @@ class TorrentFS(object):
                            index
                            )
     def FileByName(self, name):
-        name = name.decode(chardet.detect(name)['encoding'])
-        if not sys.platform.startswith('win'):
-            name = name.encode(sys.getfilesystemencoding())
-        savePath = os.path.abspath(os.path.join(self.SavePath(), name))
+        savePath = os.path.abspath(os.path.join(self.SavePath(), localize_path(name)))
         for file_ in self.Files():
             if file_.savePath == savePath:
                 return file_
