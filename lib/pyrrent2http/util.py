@@ -3,6 +3,13 @@ import socket
 import chardet
 
 
+class Struct(dict):
+    def __getattr__(self, attr):
+        return self[attr]
+    def __setattr__(self, attr, value):
+        self[attr] = value
+
+
 def localize_path(path):
     path = path.decode(chardet.detect(path)['encoding'])
     if not sys.platform.startswith('win'):

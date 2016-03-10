@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse
 import sys, os
 import json
 import chardet
@@ -28,7 +27,7 @@ import BaseHTTPServer
 import SocketServer
 import threading
 import io
-from util import localize_path
+from util import localize_path, Struct
 
 
 
@@ -423,20 +422,6 @@ class TorrentFS(object):
         
 #############################################################
 
-class AttributeDict(dict):
-    def __getattr__(self, attr):
-        return self[attr]
-    def __setattr__(self, attr, value):
-        self[attr] = value
-
-class BoolArg(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        #print(repr(values))
-        if values is None: v = True
-        elif values.lower() == 'true': v = True
-        elif values.lower() == 'false': v = False
-        setattr(namespace, self.dest, v)
-        
 class ThreadingHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     def handle_error(self, *args, **kwargs):
         '''Обходим злосчастный "Broken Pipe" и прочие трейсы'''
@@ -591,68 +576,67 @@ class Pyrrent2http(object):
         self.forceShutdown = False
         self.session = None
         self.magnet = False
-    def parseFlags(self, params = None):
-        parser = argparse.ArgumentParser(add_help=True, version=VERSION)
-        parser.add_argument('--uri', type=str, default='', help='Magnet URI or .torrent file URL', dest='uri')
-        parser.add_argument('--bind', type=str, default='localhost:5001', help='Bind address of torrent2http', dest='bindAddress')
-        parser.add_argument('--dl-path', type=str, default='.', help='Download path', dest='downloadPath')
-        parser.add_argument('--max-idle', type=int, default=-1, help='Automatically shutdown if no connection are active after a timeout', dest='idleTimeout')
-        parser.add_argument('--file-index', type=int, default=-1, help='Start downloading file with specified index immediately (or start in paused state otherwise)', dest='fileIndex')
-        parser.add_argument('--keep-complete', nargs='?', action=BoolArg, default=False, help='Keep complete files after exiting', dest='keepComplete', choices=('true', 'false'))
-        parser.add_argument('--keep-incomplete', nargs='?', action=BoolArg, default=False, help='Keep incomplete files after exiting', dest='keepIncomplete', choices=('true', 'false'))
-        parser.add_argument('--keep-files', nargs='?', action=BoolArg, default=False, help='Keep all files after exiting (incl. -keep-complete and -keep-incomplete)', dest='keepFiles', choices=('true', 'false'))
-        parser.add_argument('--show-stats', nargs='?', action=BoolArg, default=False, help='Show all stats (incl. -overall-progress -files-progress -pieces-progress)', dest='showAllStats', choices=('true', 'false'))
-        parser.add_argument('--overall-progress', nargs='?', action=BoolArg, default=False, help='Show overall progress', dest='showOverallProgress', choices=('true', 'false'))
-        parser.add_argument('--files-progress', nargs='?', action=BoolArg, default=False, help='Show files progress', dest='showFilesProgress', choices=('true', 'false'))
-        parser.add_argument('--pieces-progress', nargs='?', action=BoolArg, default=False, help='Show pieces progress', dest='showPiecesProgress', choices=('true', 'false'))
-        parser.add_argument('--debug-alerts', nargs='?', action=BoolArg, default=False, help='Show debug alert notifications', dest='debugAlerts', choices=('true', 'false'))
-        parser.add_argument('--exit-on-finish', nargs='?', action=BoolArg, default=False, help='Exit when download finished', dest='exitOnFinish', choices=('true', 'false'))
-        parser.add_argument('--resume-file', type=str, default='', help='Use fast resume file', dest='resumeFile')
-        parser.add_argument('--state-file', type=str, default='', help='Use file for saving/restoring session state', dest='stateFile')
-        parser.add_argument('--user-agent', type=str, default=USER_AGENT, help='Set an user agent', dest='userAgent')
-        parser.add_argument('--dht-routers', type=str, default='', help='Additional DHT routers (comma-separated host:port pairs)', dest='dhtRouters')
-        parser.add_argument('--trackers', type=str, default='', help='Additional trackers (comma-separated URLs)', dest='trackers')
-        parser.add_argument('--listen-port', type=int, default=6881, help='Use specified port for incoming connections', dest='listenPort')
-        parser.add_argument('--torrent-connect-boost', type=int, default=50, help='The number of peers to try to connect to immediately when the first tracker response is received for a torrent', dest='torrentConnectBoost')
-        parser.add_argument('--connection-speed', type=int, default=50, help='The number of peer connection attempts that are made per second', dest='connectionSpeed')
-        parser.add_argument('--peer-connect-timeout', type=int, default=15, help='The number of seconds to wait after a connection attempt is initiated to a peer', dest='peerConnectTimeout')
-        parser.add_argument('--request-timeout', type=int, default=20, help='The number of seconds until the current front piece request will time out', dest='requestTimeout')
-        parser.add_argument('--dl-rate', type=int, default=-1, help='Max download rate (kB/s)', dest='maxDownloadRate')
-        parser.add_argument('--ul-rate', type=int, default=-1, help='Max upload rate (kB/s)', dest='maxUploadRate')
-        parser.add_argument('--connections-limit', type=int, default=200, help='Set a global limit on the number of connections opened', dest='connectionsLimit')
-        parser.add_argument('--encryption', type=int, default=1, help='Encryption: 0=forced 1=enabled (default) 2=disabled', dest='encryption')
-        parser.add_argument('--min-reconnect-time', type=int, default=60, help='The time to wait between peer connection attempts. If the peer fails, the time is multiplied by fail counter', dest='minReconnectTime')
-        parser.add_argument('--max-failcount', type=int, default=3, help='The maximum times we try to connect to a peer before stop connecting again', dest='maxFailCount')
-        parser.add_argument('--no-sparse', nargs='?', action=BoolArg, default=False, help='Do not use sparse file allocation', dest='noSparseFile', choices=('true', 'false'))
-        parser.add_argument('--random-port', nargs='?', action=BoolArg, default=False, help='Use random listen port (49152-65535)', dest='randomPort', choices=('true', 'false'))
-        parser.add_argument('--enable-scrape', nargs='?', action=BoolArg, default=False, help='Enable sending scrape request to tracker (updates total peers/seeds count)', dest='enableScrape', choices=('true', 'false'))
-        parser.add_argument('--enable-dht', nargs='?', action=BoolArg, default=True, help='Enable DHT (Distributed Hash Table)', dest='enableDHT', choices=('true', 'false'))
-        parser.add_argument('--enable-lsd', nargs='?', action=BoolArg, default=True, help='Enable LSD (Local Service Discovery)', dest='enableLSD', choices=('true', 'false'))
-        parser.add_argument('--enable-upnp', nargs='?', action=BoolArg, default=True, help='Enable UPnP (UPnP port-mapping)', dest='enableUPNP', choices=('true', 'false'))
-        parser.add_argument('--enable-natpmp', nargs='?', action=BoolArg, default=True, help='Enable NATPMP (NAT port-mapping)', dest='enableNATPMP', choices=('true', 'false'))
-        parser.add_argument('--enable-utp', nargs='?', action=BoolArg, default=True, help='Enable uTP protocol', dest='enableUTP', choices=('true', 'false'))
-        parser.add_argument('--enable-tcp', nargs='?', action=BoolArg, default=True, help='Enable TCP protocol', dest='enableTCP', choices=('true', 'false'))
-        if params is None:
-            config_ = parser.parse_args()
-        else:
-            config_ = parser.parse_args(args = params)
-        self.config = AttributeDict()
-        for k in config_.__dict__.keys():
-            self.config[k] = config_.__dict__[k]
+    def initConfig(self, uri = '', bindAddress = 'localhost:5001', downloadPath = '.',
+                    idleTimeout = -1, fileIndex = -1, keepComplete = False, 
+                    keepIncomplete = False, keepFiles = False, showAllStats = False, 
+                    showOverallProgress = False, showFilesProgress = False, 
+                    showPiecesProgress = False, debugAlerts = False,
+                    exitOnFinish = False, resumeFile = '', stateFile = '',
+                    userAgent = USER_AGENT, dhtRouters = '', trackers = '',
+                    listenPort = 6881, torrentConnectBoost = 50, connectionSpeed = 50,
+                    peerConnectTimeout = 15, requestTimeout = 20, maxDownloadRate = -1,
+                    maxUploadRate = -1, connectionsLimit = 200, encryption = 1,
+                    minReconnectTime = 60, maxFailCount = 3, noSparseFile = False,
+                    randomPort = False, enableScrape = False, enableDHT = True,
+                    enableLSD = True, enableUPNP = True, enableNATPMP = True, enableUTP = True, enableTCP = True):
+        self.config = Struct()
+        self.config.uri = uri
+        self.config.bindAddress = bindAddress
+        self.config.downloadPath = downloadPath
+        self.config.idleTimeout = idleTimeout
+        self.config.fileIndex = fileIndex
+        self.config.keepComplete = keepComplete
+        self.config.keepIncomplete = keepIncomplete
+        self.config.keepFiles = keepFiles
+        self.config.showAllStats = showAllStats
+        self.config.showOverallProgress = showOverallProgress
+        self.config.showFilesProgress = showFilesProgress
+        self.config.showPiecesProgress = showPiecesProgress
+        self.config.debugAlerts = debugAlerts
+        self.config.exitOnFinish = exitOnFinish
+        self.config.resumeFile = resumeFile
+        self.config.stateFile = stateFile
+        self.config.userAgent = userAgent
+        self.config.dhtRouters = dhtRouters
+        self.config.trackers = trackers
+        self.config.listenPort = listenPort
+        self.config.torrentConnectBoost = torrentConnectBoost
+        self.config.connectionSpeed = connectionSpeed
+        self.config.peerConnectTimeout = peerConnectTimeout
+        self.config.requestTimeout = requestTimeout
+        self.config.maxDownloadRate = maxDownloadRate
+        self.config.maxUploadRate = maxUploadRate
+        self.config.connectionsLimit = connectionsLimit
+        self.config.encryption = encryption
+        self.config.minReconnectTime = minReconnectTime
+        self.config.maxFailCount = maxFailCount
+        self.config.noSparseFile = noSparseFile
+        self.config.randomPort = randomPort
+        self.config.enableScrape = enableScrape
+        self.config.enableDHT = enableDHT
+        self.config.enableLSD = enableLSD
+        self.config.enableUPNP = enableUPNP
+        self.config.enableNATPMP = enableNATPMP
+        self.config.enableUTP = enableUTP
+        self.config.enableTCP = enableTCP
         if self.config.uri == '':
-            parser.print_usage()
-            if STANDALONE:
-                sys.exit(1)
-            else:
-                raise "Invalid argument"
+            raise Exception("uri is empty string")
         if self.config.uri.startswith('magnet:'):
             self.magnet = True
+        if self.config.resumeFile is None: self.config.resumeFile = ''
         if self.config.resumeFile != '' and not self.config.keepFiles:
-            logging.error('Usage of option --resume-file is allowed only along with --keep-files')
-            if STANDALONE:
-                sys.exit(1)
-            else:
-                raise
+            raise Exception('Не должно быть файла восстановления, если мы не храним файлы')
+        
     def buildTorrentParams(self, uri):
         if uri[1] == ':' and sys.platform.startswith('win'):
             uri = 'file:///' + uri
@@ -796,7 +780,7 @@ class Pyrrent2http(object):
         self.session.set_settings(settings)
         
         if self.config.stateFile != '':
-            logging.info('Loading session state from %s', self.config.stateFile)
+            logging.info('Loading session state from %s' % (self.config.stateFile,))
             try:
                 with open(self.config.stateFile, 'rb') as f:
                     bytes__ = f.read()
@@ -900,7 +884,7 @@ class Pyrrent2http(object):
                       'offset':     file_.offset,
                       'download':   file_.Downloaded(),
                       'progress':   file_.Progress(),
-                      'save_path':   file_.SavePath(),
+                      'save_path':   file_.save_path,
                       'url':        Url
                       }
                 retFiles['files'].append(fi)
@@ -1019,6 +1003,7 @@ class Pyrrent2http(object):
         data = lt.bencode(entry)
         logging.info('Saving session state to: %s' % (self.config.stateFile,))
         try:
+            logging.info('Saving session state to: %s' % (self.config.stateFile,))
             with open(self.config.stateFile, 'wb') as f:
                 f.write(data)
         except IOError as e:
@@ -1044,8 +1029,8 @@ class Pyrrent2http(object):
         if self.TorrentFS.HasTorrentInfo():
             for file in self.TorrentFS.Files():
                 if (not self.config.keepComplete or not file.IsComplete()) and (not self.config.keepIncomplete or file.IsComplete()):
-                    if os.path.exists(file.SavePath()):
-                        files.append(file.SavePath())
+                    if os.path.exists(file.save_path):
+                        files.append(file.save_path)
         return files
     def removeTorrent(self):
         files = []

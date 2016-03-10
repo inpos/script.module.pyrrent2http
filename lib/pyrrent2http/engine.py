@@ -99,8 +99,8 @@ class Engine:
                  enable_dht=True, enable_lsd=True, enable_natpmp=True, enable_upnp=True, enable_scrape=False,
                  log_stats=False, encryption=Encryption.ENABLED, keep_complete=False, keep_incomplete=False,
                  keep_files=False, log_files_progress=False, log_overall_progress=False, log_pieces_progress=False,
-                 listen_port=6881, use_random_port=False, max_idle_timeout=None, no_sparse=False, resume_file=None,
-                 user_agent=None, startup_timeout=5, state_file=None, enable_utp=True, enable_tcp=True,
+                 listen_port=6881, use_random_port=False, max_idle_timeout=None, no_sparse=False, resume_file='',
+                 user_agent=None, startup_timeout=5, state_file='', enable_utp=True, enable_tcp=True,
                  debug_alerts=False, logger=None, torrent_connect_boost=50, connection_speed=50,
                  peer_connect_timeout=15, request_timeout=20, min_reconnect_time=60, max_failcount=3,
                  dht_routers=None, trackers=None):
@@ -239,61 +239,46 @@ class Engine:
             self.bind_port = port
 
         kwargs = {
-            '--bind': "%s:%s" % (self.bind_host, self.bind_port),
-            '--uri': self.uri,
-            '--file-index': start_index,
-            '--dl-path': download_path,
-            '--connections-limit': self.connections_limit,
-            '--dl-rate': self.download_kbps,
-            '--ul-rate': self.upload_kbps,
-            '--enable-dht': self.enable_dht,
-            '--enable-lsd': self.enable_lsd,
-            '--enable-natpmp': self.enable_natpmp,
-            '--enable-upnp': self.enable_upnp,
-            '--enable-scrape': self.enable_scrape,
-            '--encryption': self.encryption,
-            '--show-stats': self.log_stats,
-            '--files-progress': self.log_files_progress,
-            '--overall-progress': self.log_overall_progress,
-            '--pieces-progress': self.log_pieces_progress,
-            '--listen-port': self.listen_port,
-            '--random-port': self.use_random_port,
-            '--keep-complete': self.keep_complete,
-            '--keep-incomplete': self.keep_incomplete,
-            '--keep-files': self.keep_files,
-            '--max-idle': self.max_idle_timeout,
-            '--no-sparse': self.no_sparse,
-            '--resume-file': self.resume_file,
-            '--user-agent': self.user_agent,
-            '--state-file': self.state_file,
-            '--enable-utp': self.enable_utp,
-            '--enable-tcp': self.enable_tcp,
-            '--debug-alerts': self.debug_alerts,
-            '--torrent-connect-boost': self.torrent_connect_boost,
-            '--connection-speed': self.connection_speed,
-            '--peer-connect-timeout': self.peer_connect_timeout,
-            '--request-timeout': self.request_timeout,
-            '--min-reconnect-time': self.min_reconnect_time,
-            '--max-failcount': self.max_failcount,
-            '--dht-routers': ",".join(self.dht_routers),
-            '--trackers': ",".join(self.trackers),
-        }
+            'torrentConnectBoost': self.torrent_connect_boost,
+            'trackers': ",".join(self.trackers),
+            'resumeFile': self.resume_file,
+            'minReconnectTime': self.min_reconnect_time,
+            'enableUPNP': self.enable_upnp,
+            'showAllStats': self.log_stats,
+            'debugAlerts': self.debug_alerts,
+            'keepComplete': self.keep_complete,
+            'dhtRouters': ",".join(self.dht_routers),
+            'userAgent': self.user_agent,
+            'enableLSD': self.enable_lsd,
+            'uri': self.uri,
+            'randomPort': self.use_random_port,
+            'noSparseFile': self.no_sparse,
+            'maxUploadRate': self.upload_kbps,
+            'downloadPath': download_path,
+            'showOverallProgress': self.log_overall_progress,
+            'enableDHT': self.enable_dht,
+            'showFilesProgress': self.log_files_progress,
+            'requestTimeout': self.request_timeout,
+            'bindAddress': "%s:%s" % (self.bind_host, self.bind_port),
+            'maxDownloadRate': self.download_kbps,
+            'connectionSpeed': self.connection_speed,
+            'keepIncomplete': self.keep_incomplete,
+            'enableTCP': self.enable_tcp,
+            'listenPort': self.listen_port,
+            'keepFiles': self.keep_files,
+            'stateFile': self.state_file,
+            'peerConnectTimeout': self.peer_connect_timeout,
+            'maxFailCount': self.max_failcount,
+            'showPiecesProgress': self.log_pieces_progress,
+            'idleTimeout': self.max_idle_timeout,
+            'fileIndex': start_index,
+            'connectionsLimit': self.connections_limit,
+            'enableScrape': self.enable_scrape,
+            'enableUTP': self.enable_utp,
+            'encryption': self.encryption,
+            'enableNATPMP': self.enable_natpmp
 
-        args = []
-        for k, v in kwargs.iteritems():
-            if v is not None:
-                if isinstance(v, bool):
-                    if v:
-                        args.append(k)
-                    else:
-                        args.append("%s=false" % k)
-                else:
-                    args.append(k)
-                    if isinstance(v, str) or isinstance(v, unicode):
-                        v = ensure_fs_encoding(v)
-                    else:
-                        v = str(v)
-                    args.append(v)
+        }
 
         self._log("Invoking pyrrent2http")
         class Logging(object):
@@ -306,22 +291,19 @@ class Engine:
                 if LOGGING:
                     self._log('ERROR: %s' % (message,))
         pyrrent2http.logging = Logging(self._log)
-#        startupinfo = None
-#        if self.platform.system == "windows":
-#            startupinfo = subprocess.STARTUPINFO()
-#            startupinfo.dwFlags |= 1
-#            startupinfo.wShowWindow = 0
-#
-#        self.logpipe = logpipe.LogPipe(self._log)
-#        try:
-#            self.process = subprocess.Popen(args, stderr=self.logpipe, stdout=self.logpipe, startupinfo=startupinfo)
-#        except OSError, e:
-#            raise Error("Can't start pyrrent2http: %r" % e, Error.POPEN_ERROR)
-
         
         self.pyrrent2http = pyrrent2http.Pyrrent2http()
-        self.pyrrent2http.parseFlags(args)
-        self.pyrrent2http.startSession()
+        self._log('init config')
+        try:
+            self.pyrrent2http.initConfig(**kwargs)
+        except Exception as e:
+            self._log('%s' % (e.args,))
+        self._log('Starting session')
+        try:
+            self.pyrrent2http.startSession()
+        except Exception as e:
+            self._log('%s' % (e.args,))
+        self._log('starting services')
         self.pyrrent2http.startServices()
         self.pyrrent2http.addTorrent()
         self.pyrrent2http.startHTTP()
@@ -440,34 +422,6 @@ class Engine:
 
     def is_alive(self):
         return self.pyrrent2http_loop.is_alive()
-
-    __to_del = '''@staticmethod
-    def _decode(response):
-        try:
-            return json.loads(response)
-        except (KeyError, ValueError), e:
-            raise Error("Can't decode response from pyrrent2http: %r" % e, Error.REQUEST_ERROR)
-'''
-    __to_del = '''def _request(self, cmd, timeout=None):
-        if not self.started:
-            raise Error("pyrrent2http is not started", Error.REQUEST_ERROR)
-        try:
-            url = "http://%s:%s/%s" % (self.bind_host, self.bind_port, cmd)
-            kwargs = {}
-            if timeout is not None:
-                kwargs['timeout'] = timeout
-            return urllib2.urlopen(url, **kwargs).read()
-        except (urllib2.URLError, httplib.HTTPException) as e:
-            if isinstance(e, urllib2.URLError) and isinstance(e.reason, socket.timeout):
-                raise Error("Timeout occurred while sending command '%s' to pyrrent2http" % cmd, Error.TIMEOUT)
-            elif not self.is_alive() and self.started:
-                raise Error("pyrrent2http has crashed.", Error.CRASHED)
-            else:
-                raise Error("Can't send command '%s' to pyrrent2http: %r" % (cmd, e), Error.REQUEST_ERROR)
-        except socket.error as e:
-            reason = e[1] if isinstance(e, tuple) else e
-            raise Error("Can't read from pyrrent2http: %s" % reason, Error.REQUEST_ERROR)
-'''
     def wait_on_close(self, wait_timeout=10):
         """
         By default, close() method sends shutdown command to pyrrent2http, stops logging and returns immediately, not
@@ -483,16 +437,12 @@ class Engine:
         Shuts down pyrrent2http and stops logging. If wait_on_close() was called earlier, it will wait until
         pyrrent2http successfully exits.
         """
-#        if self.logpipe and self.wait_on_close_timeout is None:
-#            self.logpipe.close()
         if self.is_alive():
             self._log("Shutting down pyrrent2http...")
-#           self._request('shutdown')
             self.pyrrent2http.shutdown()
             finished = False
             if self.wait_on_close_timeout is not None:
                 start = time.time()
-#                os.close(self.logpipe.write_fd)
                 while (time.time() - start) < self.wait_on_close_timeout:
                     time.sleep(0.5)
                     if not self.is_alive():
@@ -500,11 +450,9 @@ class Engine:
                         break
                 if not finished:
                     self._log("PANIC: Timeout occurred while shutting down pyrrent2http thread")
-                    #self.process.kill()
                 else:
                     self._log("pyrrent2http successfully shut down.")
                 self.wait_on_close_timeout = None
-#            self.process.wait()
         self.started = False
         self.logpipe = None
         self.process = None
