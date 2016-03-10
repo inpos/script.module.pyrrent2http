@@ -139,7 +139,7 @@ class TorrentFile(object):
     tfs         =   None
     num         =   int()
     closed      =   True
-    savePath    =   str()
+    save_path    =   str()
     fileEntry   =   None
     index       =   int()
     filePtr     =   None
@@ -151,15 +151,13 @@ class TorrentFile(object):
         self.fileEntry = fileEntry
         self.name = self.Name()
         self.unicode_name = self.name.decode(chardet.detect(self.name)['encoding'])
-        self.savePath = savePath
+        self.save_path = savePath
         self.index = index
         self.piece_length = int(self.pieceLength())
         self.startPiece, self.endPiece = self.Pieces()
         self.pieces_deadlined = [False for x in range(self.endPiece - self.startPiece)]
         self.offset = self.Offset()
         self.size = self.Size()
-    def SavePath(self):
-        return self.savePath
     def Index(self):
         return tf.index
     def Downloaded(self):
@@ -171,10 +169,10 @@ class TorrentFile(object):
             return None
         if self.filePtr is None:
             #print('savePath: %s' % (self.savePath,))
-            while not os.path.exists(self.savePath):
-                logging.info('Waiting: %s' % (self.savePath,))
+            while not os.path.exists(self.save_path):
+                logging.info('Waiting: %s' % (self.save_path,))
                 time.sleep(0.5)
-            self.filePtr = io.open(self.savePath, 'rb')
+            self.filePtr = io.open(self.save_path, 'rb')
         return self.filePtr
     def log(self, message):
         fnum = self.num
@@ -300,11 +298,13 @@ class TorrentFS(object):
     shuttingDown   =    False
     fileCounter =       int()
     progresses  =       list()
+    save_path   =       None
 
     def __init__(self, root, handle, startIndex):
         self.root = root
         self.handle = handle
         self.waitForMetadata()
+        self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = [[i, p] for i,p in enumerate(self.handle.file_priorities())]
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
@@ -369,15 +369,13 @@ class TorrentFS(object):
                 file_.progress = float(file_.downloaded)/float(file_.Size())
             files[i] = file_
         return files
-    def SavePath(self):
-        return self.root.torrentParams['save_path']
     def FileAt(self, index):
         info = self.TorrentInfo()
         if index < 0 or index >= info.num_files():
             raise IndexError
         fileEntry = info.file_at(index)
         fe_path = fileEntry.path
-        path = os.path.abspath(os.path.join(self.SavePath(), localize_path(fe_path)))
+        path = os.path.abspath(os.path.join(self.save_path, localize_path(fe_path)))
         return TorrentFile(
                            self,
                            fileEntry,
@@ -385,9 +383,9 @@ class TorrentFS(object):
                            index
                            )
     def FileByName(self, name):
-        savePath = os.path.abspath(os.path.join(self.SavePath(), localize_path(name)))
+        savePath = os.path.abspath(os.path.join(self.save_path, localize_path(name)))
         for file_ in self.Files():
-            if file_.savePath == savePath:
+            if file_.save_path == savePath:
                 return file_
         raise IOError
     def Open(self, name):
