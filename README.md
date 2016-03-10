@@ -19,7 +19,7 @@ Getting list of files inside torrent is straightforward:
 
 ```python
 import xbmc 
-from torrent2http import State, Engine, MediaType
+from pyrrent2http import State, Engine, MediaType
 from contextlib import closing
 
 # Create instance of Engine 
@@ -42,7 +42,7 @@ with closing(engine):
 
 ```python
 import xbmc 
-from torrent2http import State, Engine, MediaType
+from pyrrent2http import State, Engine, MediaType
 from contextlib import closing
 
 # XBMC addon handle
@@ -105,8 +105,4 @@ with closing(engine):
         while not xbmc.abortRequested and xbmc.Player().isPlaying():
             xbmc.sleep(500)
 ```
-        
-### Fully working example ###
 
-You can look into fully working [example](https://github.com/anteo/plugin.video.okino/blob/master/resources/lib/okino/torrent/stream/t2h_stream.py). This is
-excerpt from my plugin using script.module.torrent2http. It rather complicated but it includes error handling, showing progress dialog and other features.
