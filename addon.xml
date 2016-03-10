@@ -6,6 +6,9 @@
         <import addon="script.module.chardet" />
     </requires>
     <extension point="xbmc.python.module" library="lib"/>
+    <extension point="xbmc.python.script" library="default.py">
+    	<provides>executable</provides>
+    </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
         <language>en</language>

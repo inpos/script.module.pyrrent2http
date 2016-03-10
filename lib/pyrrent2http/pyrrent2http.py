@@ -667,13 +667,9 @@ class Pyrrent2http(object):
             try:
                 absPath = os.path.abspath(urllib.unquote(uriPath))
                 logging.info('Opening local torrent file: %s' % (absPath,))
-                with open(absPath, 'rb') as f:
-                    btorrent_info = f.read()
-                    torrent_info = lt.torrent_info(lt.bdecode(btorrent_info))
+                torrent_info = lt.torrent_info(absPath)
             except Exception as e:
                 strerror = e.args
-                if btorrent_info == '':
-                    logging.error('Torrent-file is empty: %s' % (absPath,))
                 logging.error('Build torrent params error is (%s)' % (strerror,))
                 if STANDALONE:
                     sys.exit(1)
