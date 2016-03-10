@@ -3,7 +3,7 @@
 import sys, os
 import json
 import chardet
-STANDALONE = False
+
 try:
     from python_libtorrent import get_libtorrent
     lt=get_libtorrent()
@@ -15,10 +15,7 @@ except Exception, e:
     except Exception as e:
         strerror = e.args
         print(strerror)
-        if STANDALONE:
-            sys.exit(1)
-        else:
-            raise
+        raise
 
 from random import SystemRandom
 import time
@@ -154,11 +151,9 @@ class TorrentFile(object):
         self.index = index
         self.piece_length = int(self.pieceLength())
         self.startPiece, self.endPiece = self.Pieces()
-        self.pieces_deadlined = [False for x in range(self.endPiece - self.startPiece)]
+        self.pieces_deadlined = [False] * (self.endPiece - self.startPiece)
         self.offset = self.Offset()
         self.size = self.Size()
-    def Index(self):
-        return tf.index
     def Downloaded(self):
         return self.downloaded
     def Progress(self):
@@ -265,26 +260,6 @@ class TorrentFile(object):
         return self.fileEntry.size
     def IsComplete(self):
         return self.downloaded == self.size
-#######################################################################################
-
-class TorrentDir(object):
-    tfs = None
-    entriesRead = int()
-    def __init__(self, tfs):
-        self.tfs = tfs
-    def Readdir(self, count):
-        info = self.tfs.TorrentInfo()
-        totalFiles = info.num_files()
-        read = self.entriesRead
-        toRead = totalFiles - read
-        if count >= 0 and count < toRead:
-            toRead = count
-        files = [None for x in range(toRead)]
-        for i in range(toRead):
-            files[i] = self.tfs.FileAt(read)
-            read += 1
-        return files
-        
 
 #######################################################################################
 
@@ -390,8 +365,6 @@ class TorrentFS(object):
     def Open(self, name):
         if self.shuttingDown or not self.HasTorrentInfo():
             raise IOError
-        if name == '/':
-            return TorrentDir(self)
         return self.OpenFile(name)
     def checkPriorities(self):
         for index, priority in enumerate(self.priorities):
@@ -655,10 +628,7 @@ class Pyrrent2http(object):
             except Exception as e:
                 strerror = e.args
                 logging.error('Build torrent params error is (%s)' % (strerror,))
-                if STANDALONE:
-                    sys.exit(1)
-                else:
-                    raise
+                raise
             torrentParams['ti'] = torrent_info
         else:
             logging.info('Will fetch: %s' % (uri,))
@@ -668,10 +638,7 @@ class Pyrrent2http(object):
             except Exception as e:
                 strerror = e.args
                 logging.error(strerror)
-                if STANDALONE:
-                    sys.exit(1)
-                else:
-                    raise
+                raise
             torrentParams['ti'] = torrent_info
         logging.info('Setting save path: %s' % (self.config.downloadPath,))
         torrentParams['save_path'] = self.config.downloadPath
@@ -800,10 +767,7 @@ class Pyrrent2http(object):
         except IOError as e:
             strerror = e.args
             logging.error(strerror)
-            if STANDALONE:
-                sys.exit(1)
-            else:
-                raise
+            raise
         
         settings = self.session.get_settings()
         if self.config.userAgent != '':
@@ -832,10 +796,7 @@ class Pyrrent2http(object):
                     except ValueError as e:
                         strerror = e.args
                         logging.error(strerror)
-                        if STANDALONE:
-                            sys.exit(1)
-                        else:
-                            raise
+                        raise
                     self.session.add_dht_router(host, port)
                     logging.info('Added DHT router: %s:%d' % (host, port))
         logging.info('Setting encryption settings')
@@ -954,9 +915,6 @@ class Pyrrent2http(object):
     def loop(self):
         def sigterm_handler(_signo, _stack_frame):
             self.forceShutdown = True
-        if STANDALONE:
-            import signal
-            signal.signal(signal.SIGTERM, sigterm_handler)
         self.statsTicker = Ticker(30)
         self.saveResumeDataTicker = Ticker(5)
         time_start = time.time()
@@ -1066,27 +1024,3 @@ class Pyrrent2http(object):
             logging.info('Aborting the session')
             del self.session
         logging.info('Bye bye')
-        if STANDALONE:
-            sys.exit(0)
-        else:
-            return
-
-
-
-if __name__ == '__main__':
-    STANDALONE = True
-    try:
-        import logging
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-        pyrrent2http = Pyrrent2http()
-        pyrrent2http.parseFlags()
-    
-        pyrrent2http.startSession()
-        pyrrent2http.startServices()
-        pyrrent2http.addTorrent()
-    
-        pyrrent2http.startHTTP()
-        pyrrent2http.loop()
-        pyrrent2http.shutdown()
-    except KeyboardInterrupt:
-        pyrrent2http.shutdown()
