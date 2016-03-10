@@ -26,9 +26,6 @@ import threading
 import io
 from util import localize_path, Struct
 
-
-
-
 ######################################################################################
 
 if not hasattr(os, 'getppid'):
