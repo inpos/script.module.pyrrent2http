@@ -6,7 +6,7 @@ import chardet
 def localize_path(path):
     path = path.decode(chardet.detect(path)['encoding'])
     if not sys.platform.startswith('win'):
-        path = path.encode(sys.getfilesystemencoding())
+        path = path.encode(True and sys.getfilesystemencoding() or 'utf-8')
     return path
 
 def can_bind(host, port):
