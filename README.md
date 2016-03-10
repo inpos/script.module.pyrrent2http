@@ -1,4 +1,4 @@
-script.module.torrent2http
+script.module.pyrrent2http
 ==========================
 
 This add-on is binding to [torrent2http](https://github.com/anteo/torrent2http) client. 
