@@ -293,17 +293,8 @@ class Engine:
         pyrrent2http.logging = Logging(self._log)
         
         self.pyrrent2http = pyrrent2http.Pyrrent2http()
-        self._log('init config')
-        try:
-            self.pyrrent2http.initConfig(**kwargs)
-        except Exception as e:
-            self._log('%s' % (e.args,))
-        self._log('Starting session')
-        try:
-            self.pyrrent2http.startSession()
-        except Exception as e:
-            self._log('%s' % (e.args,))
-        self._log('starting services')
+        self.pyrrent2http.initConfig(**kwargs)
+        self.pyrrent2http.startSession()
         self.pyrrent2http.startServices()
         self.pyrrent2http.addTorrent()
         self.pyrrent2http.startHTTP()
