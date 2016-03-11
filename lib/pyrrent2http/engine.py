@@ -235,7 +235,7 @@ class Engine:
         self.pyrrent2http_loop.start()
         
 
-        start = time.time()
+        '''start = time.time()
         self.started = True
         initialized = False
         while (time.time() - start) < self.startup_timeout:
@@ -251,7 +251,7 @@ class Engine:
 
         if not initialized:
             self.started = False
-            raise Error("Can't start pyrrent2http, time is out", Error.TIMEOUT)
+            raise Error("Can't start pyrrent2http, time is out", Error.TIMEOUT)'''
         self._log("pyrrent2http successfully started.")
 
     def check_torrent_error(self, status=None):
@@ -354,7 +354,7 @@ class Engine:
 
         :param wait_timeout: Time in seconds to wait until pyrrent2http client shut down
         """
-        self.wait_on_close_timeout = wait_timeout
+        #self.wait_on_close_timeout = wait_timeout
 
     def close(self):
         """
@@ -364,7 +364,7 @@ class Engine:
         if self.is_alive():
             self._log("Shutting down pyrrent2http...")
             self.pyrrent2http.shutdown()
-            finished = False
+            '''finished = False
             if self.wait_on_close_timeout is not None:
                 start = time.time()
                 while (time.time() - start) < self.wait_on_close_timeout:
@@ -376,7 +376,8 @@ class Engine:
                     self._log("PANIC: Timeout occurred while shutting down pyrrent2http thread")
                 else:
                     self._log("pyrrent2http successfully shut down.")
-                self.wait_on_close_timeout = None
+                self.wait_on_close_timeout = None'''
+            self._log("pyrrent2http successfully shut down.")
         self.started = False
         self.logpipe = None
         self.process = None

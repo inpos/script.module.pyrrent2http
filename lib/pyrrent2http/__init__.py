@@ -40,5 +40,4 @@ PeerInfo = namedtuple('PeerInfo', "ip, flags, source, up_speed, down_speed, tota
                                   "country, client")
 
 from engine import Engine
-from platform import Platform
 from error import Error

@@ -441,7 +441,7 @@ def HttpHandlerFactory():
                         chunk = end_range - start_range
                         buf = bytearray(chunk)
                     try:
-                        f.Read(buf)
+                        count = f.Read(buf)
                         self.wfile.write(buf)
                     except:
                         break
