@@ -4,6 +4,7 @@ import chardet
 import os
 from . import MediaType
 import mimetypes
+import urlparse, urllib
 
 SUBTITLES_FORMATS = ['.aqt', '.gsub', '.jss', '.sub', '.ttxt', '.pjs', '.psb', '.rt', '.smi', '.stl',
                          '.ssf', '.srt', '.ssa', '.ass', '.usf', '.idx']
@@ -13,6 +14,17 @@ class Struct(dict):
         return self[attr]
     def __setattr__(self, attr, value):
         self[attr] = value
+
+def uri2path(uri):
+    if uri[1] == ':' and sys.platform.startswith('win'):
+        uri = 'file:///' + uri
+    fileUri = urlparse.urlparse(uri)
+    if fileUri.scheme == 'file':
+        uriPath = fileUri.path
+        if uriPath != '' and sys.platform.startswith('win') and (os.path.sep == uriPath[0] or uriPath[0] == '/'):
+            uriPath = uriPath[1:]
+    absPath = os.path.abspath(urllib.unquote(uriPath))
+    return localize_path(absPath)
 
 def detect_media_type(name):
     ext = os.path.splitext(name)[1]
@@ -29,9 +41,16 @@ def detect_media_type(name):
             return MediaType.VIDEO
         else:
             return MediaType.UNKNOWN
+def normalize_msg(tmpl, *args):
+    msg = tmpl.decode(chardet.detect(tmpl)['encoding'])
+    arg_ = []
+    for a in args:
+        if not isinstance(a, unicode): arg_.append(a.decode(chardet.detect(a)['encoding']))
+    return msg % tuple(arg_)
+    
 
 def localize_path(path):
-    path = path.decode(chardet.detect(path)['encoding'])
+    if not isinstance(path, unicode): path = path.decode(chardet.detect(path)['encoding'])
     if not sys.platform.startswith('win'):
         path = path.encode(True and sys.getfilesystemencoding() or 'utf-8')
     return path

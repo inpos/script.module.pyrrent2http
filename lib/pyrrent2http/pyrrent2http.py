@@ -24,7 +24,7 @@ import BaseHTTPServer
 import SocketServer
 import threading
 import io
-from util import localize_path, Struct, detect_media_type
+from util import localize_path, Struct, detect_media_type, uri2path, normalize_msg
 
 
 ######################################################################################
@@ -601,35 +601,16 @@ class Pyrrent2http(object):
             raise Exception('Не должно быть файла восстановления, если мы не храним файлы')
         
     def buildTorrentParams(self, uri):
-        if uri[1] == ':' and sys.platform.startswith('win'):
-            uri = 'file:///' + uri
-        fileUri = urlparse.urlparse(uri)
+        try:
+            absPath = uri2path(uri)
+            logging.info(normalize_msg('Opening local torrent file: %s', absPath))
+            torrent_info = lt.torrent_info(absPath)
+        except Exception as e:
+            strerror = e.args
+            logging.error('Build torrent params error is (%s)' % (strerror,))
+            raise
         torrentParams = {}
-        if self.magnet:
-            torrentParams['url'] =  uri
-        elif fileUri.scheme == 'file':
-            uriPath = fileUri.path
-            if uriPath != '' and sys.platform.startswith('win') and (os.path.sep == uriPath[0] or uriPath[0] == '/'):
-                uriPath = uriPath[1:]
-            try:
-                absPath = os.path.abspath(urllib.unquote(uriPath))
-                logging.info('Opening local torrent file: %s' % (absPath,))
-                torrent_info = lt.torrent_info(absPath)
-            except Exception as e:
-                strerror = e.args
-                logging.error('Build torrent params error is (%s)' % (strerror,))
-                raise
-            torrentParams['ti'] = torrent_info
-        else:
-            logging.info('Will fetch: %s' % (uri,))
-            try:
-                torrent_raw = urllib.urlopen(uri).read()
-                torrent_info = lt.torrent_info(torrent_raw, len(torrent_raw))
-            except Exception as e:
-                strerror = e.args
-                logging.error(strerror)
-                raise
-            torrentParams['ti'] = torrent_info
+        torrentParams['ti'] = torrent_info
         logging.info('Setting save path: %s' % (self.config.downloadPath,))
         torrentParams['save_path'] = self.config.downloadPath
         

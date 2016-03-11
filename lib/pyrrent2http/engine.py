@@ -12,7 +12,7 @@ import pyrrent2http
 import xbmc
 from error import Error
 from . import SessionStatus, FileStatus, PeerInfo, Encryption
-from util import can_bind, find_free_port, localize_path
+from util import can_bind, find_free_port, localize_path, uri2path
 import threading
 
 LOGGING = True
@@ -130,6 +130,7 @@ class Engine:
         self.logger = logger
         self.uri = uri
         self.started = False
+        self.fullStart = True
 
 
     @staticmethod
@@ -293,6 +294,28 @@ class Engine:
             if media_types is not None:
                 res = filter(lambda fs: fs.media_type in media_types, res)
             return res
+    def list_from_info(self):
+        self.fullStart = False
+        try:
+            info = pyrrent2http.lt.torrent_info(uri2path(self.uri))
+        except:
+            return []
+        files = []
+        for i in range(info.num_files()):
+            f = info.file_at(i)
+            files.append({
+                     'name':    localize_path(f.path),
+                     'size':    f.size,
+                     'offset':  f.offset,
+                     'media_type': '',
+                     'download':   0,
+                     'progress':   0.0,
+                     'save_path':  '',
+                     'url':        ''
+                     })
+        if files:
+            res = [FileStatus(index=index, **f) for index, f in enumerate(files)]
+        return res
 
     def file_status(self, file_index, timeout=10):
         """
@@ -342,7 +365,7 @@ class Engine:
         Shuts down pyrrent2http and stops logging. If wait_on_close() was called earlier, it will wait until
         pyrrent2http successfully exits.
         """
-        if self.is_alive():
+        if self.fullStart and self.is_alive():
             self._log("Shutting down pyrrent2http...")
             self.pyrrent2http.shutdown()
             finished = False
