@@ -289,8 +289,7 @@ class Engine:
         """
         files = self.pyrrent2http.Ls()['files']
         if files:
-            res = [FileStatus(index=index, **f)
-                   for index, f in enumerate(files)]
+            res = [FileStatus(index=index, **f) for index, f in enumerate(files)]
             if media_types is not None:
                 res = filter(lambda fs: fs.media_type in media_types, res)
             return res

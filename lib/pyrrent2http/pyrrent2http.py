@@ -131,7 +131,6 @@ class Ticker(object):
 
 class TorrentFile(object):
     tfs         =   None
-    num         =   int()
     closed      =   True
     save_path    =   str()
     fileEntry   =   None
@@ -148,11 +147,12 @@ class TorrentFile(object):
         self.media_type = detect_media_type(self.unicode_name)
         self.save_path = savePath
         self.index = index
-        self.piece_length = int(self.pieceLength())
+        self.piece_length = int(self.tfs.info.piece_length())
+        self.size = self.fileEntry.size
+        self.offset = self.fileEntry.offset
         self.startPiece, self.endPiece = self.Pieces()
         self.pieces_deadlined = [False] * (self.endPiece - self.startPiece)
-        self.offset = self.Offset()
-        self.size = self.Size()
+        
     def Downloaded(self):
         return self.downloaded
     def Progress(self):
@@ -161,36 +161,28 @@ class TorrentFile(object):
         if self.closed:
             return None
         if self.filePtr is None:
-            #print('savePath: %s' % (self.savePath,))
             while not os.path.exists(self.save_path):
                 logging.info('Waiting: %s' % (self.save_path,))
                 time.sleep(0.5)
             self.filePtr = io.open(self.save_path, 'rb')
         return self.filePtr
     def log(self, message):
-        fnum = self.num
+        fnum = self.index
         logging.info("[%d] %s\n" % (fnum, message))
     def Pieces(self):
         startPiece, _ = self.pieceFromOffset(1)
-        endPiece, _ = self.pieceFromOffset(self.Size() - 1)
+        endPiece, _ = self.pieceFromOffset(self.size - 1)
         return startPiece, endPiece
     def SetPriority(self, priority):
         self.tfs.setPriority(self.index, priority)
-    def Stat(self):
-        return self
     def readOffset(self):
         return self.filePtr.seek(0, io.SEEK_CUR)
     def havePiece(self, piece):
         return self.tfs.handle.have_piece(piece)
-    def pieceLength(self):
-        return self.tfs.info.piece_length()
     def pieceFromOffset(self, offset):
-        #pieceLength = self.piece_length
-        piece = int((self.Offset() + offset) / self.piece_length)
-        pieceOffset = int((self.Offset() + offset) % self.piece_length)
+        piece = int((self.offset + offset) / self.piece_length)
+        pieceOffset = int((self.offset + offset) % self.piece_length)
         return piece, pieceOffset
-    def Offset(self):
-        return self.fileEntry.offset
     def waitForPiece(self, piece):
         def set_deadlines(p):
             next_piece = p + 1
@@ -247,7 +239,6 @@ class TorrentFile(object):
         filePtr = self.FilePtr()
         if filePtr is None: return
         if whence == os.SEEK_END:
-            #offset = self.Size() - offset
             offset = self.size - offset
             whence = os.SEEK_SET
         newOffset = filePtr.seek(offset, whence)
@@ -343,8 +334,8 @@ class TorrentFS(object):
         for i in range(info.num_files()):
             file_ = self.FileAt(i)
             file_.downloaded = self.getFileDownloadedBytes(i)
-            if file_.Size() > 0:
-                file_.progress = float(file_.downloaded)/float(file_.Size())
+            if file_.size > 0:
+                file_.progress = float(file_.downloaded)/float(file_.size)
             self.files.append(file_)
         return self.files
     def FileAt(self, index):
@@ -432,12 +423,8 @@ def HttpHandlerFactory():
                 self.send_error(404, 'Not found')
                 self.end_headers()
         def filesHandler(self):
-            #print('+++++start handle file+++++')
             f, start_range, end_range = self.send_head()
-            #print('%s | %d | %d' % (repr(f), repr(start_range), repr(end_range)))
-            #print "Got values of ", start_range, " and ", end_range, "...\n"
             if not f.closed:
-                #print('Reading file!!!!!!')
                 f.Seek(start_range, 0)
                 chunk = f.piece_length
                 total = 0
@@ -447,7 +434,7 @@ def HttpHandlerFactory():
                         chunk = end_range - start_range
                         buf = bytearray(chunk)
                     try:
-                        count = f.Read(buf)
+                        if f.Read(buf) < 1: break
                         self.wfile.write(buf)
                     except:
                         break
@@ -458,7 +445,6 @@ def HttpHandlerFactory():
             fname = urllib.unquote(self.path.lstrip('/files/'))
             try:
                 f =  self.server.root_obj.TorrentFS.Open(fname)
-                #print('++++file opening++++')
             except IOError:
                 self.send_error(404, "File not found")
                 return (None, 0, 0)
