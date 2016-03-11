@@ -42,7 +42,7 @@ def detect_media_type(name):
         else:
             return MediaType.UNKNOWN
 def normalize_msg(tmpl, *args):
-    msg = tmpl.decode(chardet.detect(tmpl)['encoding'])
+    msg = isinstance(tmpl, unicode) and tmpl or tmpl.decode(chardet.detect(tmpl)['encoding'])
     arg_ = []
     for a in args:
         if not isinstance(a, unicode): arg_.append(a.decode(chardet.detect(a)['encoding']))
