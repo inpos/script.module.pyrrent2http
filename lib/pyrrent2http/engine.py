@@ -13,7 +13,7 @@ import mimetypes
 import xbmc
 from error import Error
 from . import SessionStatus, FileStatus, PeerInfo, MediaType, Encryption
-from util import can_bind, find_free_port, ensure_fs_encoding
+from util import can_bind, find_free_port, localize_path
 import threading
 
 LOGGING = True
@@ -151,7 +151,7 @@ class Engine:
                 path = path.replace("smb:", "").replace("/", "\\")
             else:
                 raise Error("Downloading to an unmounted network share is not supported", Error.INVALID_DOWNLOAD_PATH)
-        if not os.path.isdir(ensure_fs_encoding(path)):
+        if not os.path.isdir(localize_path(path)):
             raise Error("Download path doesn't exist (%s)" % path, Error.INVALID_DOWNLOAD_PATH)
         return path
 
@@ -354,7 +354,7 @@ class Engine:
 
         :param wait_timeout: Time in seconds to wait until pyrrent2http client shut down
         """
-        #self.wait_on_close_timeout = wait_timeout
+        self.wait_on_close_timeout = wait_timeout
 
     def close(self):
         """
@@ -364,7 +364,7 @@ class Engine:
         if self.is_alive():
             self._log("Shutting down pyrrent2http...")
             self.pyrrent2http.shutdown()
-            '''finished = False
+            finished = False
             if self.wait_on_close_timeout is not None:
                 start = time.time()
                 while (time.time() - start) < self.wait_on_close_timeout:
@@ -376,7 +376,7 @@ class Engine:
                     self._log("PANIC: Timeout occurred while shutting down pyrrent2http thread")
                 else:
                     self._log("pyrrent2http successfully shut down.")
-                self.wait_on_close_timeout = None'''
+                self.wait_on_close_timeout = None
             self._log("pyrrent2http successfully shut down.")
         self.started = False
         self.logpipe = None
