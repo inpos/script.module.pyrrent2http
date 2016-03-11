@@ -1,7 +1,12 @@
 import sys
 import socket
 import chardet
+import os
+from . import MediaType
+import mimetypes
 
+SUBTITLES_FORMATS = ['.aqt', '.gsub', '.jss', '.sub', '.ttxt', '.pjs', '.psb', '.rt', '.smi', '.stl',
+                         '.ssf', '.srt', '.ssa', '.ass', '.usf', '.idx']
 
 class Struct(dict):
     def __getattr__(self, attr):
@@ -9,6 +14,21 @@ class Struct(dict):
     def __setattr__(self, attr, value):
         self[attr] = value
 
+def detect_media_type(name):
+    ext = os.path.splitext(name)[1]
+    if ext in SUBTITLES_FORMATS:
+        return MediaType.SUBTITLES
+    else:
+        mime_type = mimetypes.guess_type(name)[0]
+        if not mime_type:
+            return MediaType.UNKNOWN
+        mime_type = mime_type.split("/")[0]
+        if mime_type == 'audio':
+            return MediaType.AUDIO
+        elif mime_type == 'video':
+            return MediaType.VIDEO
+        else:
+            return MediaType.UNKNOWN
 
 def localize_path(path):
     path = path.decode(chardet.detect(path)['encoding'])

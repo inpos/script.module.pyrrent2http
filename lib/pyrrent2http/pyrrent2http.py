@@ -24,7 +24,7 @@ import BaseHTTPServer
 import SocketServer
 import threading
 import io
-from util import localize_path, Struct
+from util import localize_path, Struct, detect_media_type
 
 
 ######################################################################################
@@ -135,16 +135,17 @@ class TorrentFile(object):
     closed      =   True
     save_path    =   str()
     fileEntry   =   None
-    index       =   int()
+    index       =   0
     filePtr     =   None
-    downloaded  =   int()
-    progress    =   float()
+    downloaded  =   0
+    progress    =   0.0
     pdl_thread  =   None
     def __init__(self, tfs, fileEntry, savePath, index):
         self.tfs = tfs
         self.fileEntry = fileEntry
         self.name = self.Name()
         self.unicode_name = self.name.decode(chardet.detect(self.name)['encoding'])
+        self.media_type = detect_media_type(self.unicode_name)
         self.save_path = savePath
         self.index = index
         self.piece_length = int(self.pieceLength())
@@ -277,7 +278,8 @@ class TorrentFS(object):
         self.handle = handle
         self.waitForMetadata()
         self.save_path = localize_path(self.root.torrentParams['save_path'])
-        self.priorities = [[i, p] for i,p in enumerate(self.handle.file_priorities())]
+        self.priorities = list(self.handle.file_priorities())
+        self.files = []
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
         for i in range(self.TorrentInfo().num_files()):
@@ -325,22 +327,26 @@ class TorrentFS(object):
         return self.info
     def LoadFileProgress(self):
         self.progresses = self.handle.file_progress()
+        for i, f in enumerate(self.files):
+            f.downloaded = self.getFileDownloadedBytes(i)
+            if f.size > 0: f.progress = float(f.downloaded)/float(f.size)
     def getFileDownloadedBytes(self, i):
         try:
-            bytes = self.progresses[i]
+            bytes_ = self.progresses[i]
         except IndexError:
-            bytes = 0
-        return bytes
+            bytes_ = 0
+        return bytes_
     def Files(self):
+        if len(self.files) > 0:
+            return self.files
         info = self.TorrentInfo()
-        files = [None for x in range(info.num_files())]
         for i in range(info.num_files()):
             file_ = self.FileAt(i)
             file_.downloaded = self.getFileDownloadedBytes(i)
             if file_.Size() > 0:
                 file_.progress = float(file_.downloaded)/float(file_.Size())
-            files[i] = file_
-        return files
+            self.files.append(file_)
+        return self.files
     def FileAt(self, index):
         info = self.TorrentInfo()
         if index < 0 or index >= info.num_files():
@@ -839,11 +845,12 @@ class Pyrrent2http(object):
                 Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(file_.name)
                 fi = {
                       'name':       file_.unicode_name,
+                      'media_type': file_.media_type,
                       'size':       file_.size,
                       'offset':     file_.offset,
-                      'download':   file_.Downloaded(),
-                      'progress':   file_.Progress(),
-                      'save_path':   file_.save_path,
+                      'download':   file_.downloaded,
+                      'progress':   file_.progress,
+                      'save_path':  file_.save_path,
                       'url':        Url
                       }
                 retFiles['files'].append(fi)
@@ -900,6 +907,7 @@ class Pyrrent2http(object):
         for alert in alerts:
             if isinstance(alert, lt.save_resume_data_alert):
                 self.processSaveResumeDataAlert(alert)
+                break
     def waitForAlert(self, alertClass, timeout):
         start = time.time()
         while True:
@@ -920,7 +928,7 @@ class Pyrrent2http(object):
             if self.forceShutdown:
                 return
             if time.time() - time_start > 0.5:
-                #self.consumeAlerts()
+                self.consumeAlerts()
                 self.TorrentFS.LoadFileProgress()
                 state = self.torrentHandle.status().state
                 if self.config.exitOnFinish and (state == state.finished or state == state.seeding):
@@ -932,6 +940,7 @@ class Pyrrent2http(object):
                 self.stats()
             if self.saveResumeDataTicker.true:
                 self.saveResumeData(True)
+            time.sleep(0.3)
 
     def processSaveResumeDataAlert(self, alert):
         logging.info('Saving resume data to: %s' % (self.config.resumeFile))

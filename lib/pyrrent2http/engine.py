@@ -9,10 +9,9 @@ import urllib2
 import httplib
 from os.path import dirname
 import pyrrent2http
-import mimetypes
 import xbmc
 from error import Error
-from . import SessionStatus, FileStatus, PeerInfo, MediaType, Encryption
+from . import SessionStatus, FileStatus, PeerInfo, Encryption
 from util import can_bind, find_free_port, localize_path
 import threading
 
@@ -22,9 +21,6 @@ class Engine:
     """
     This is python binding class to pyrrent2http client.
     """
-    SUBTITLES_FORMATS = ['.aqt', '.gsub', '.jss', '.sub', '.ttxt', '.pjs', '.psb', '.rt', '.smi', '.stl',
-                         '.ssf', '.srt', '.ssa', '.ass', '.usf', '.idx']
-
     def _log(self, message):
         if self.logger:
             self.logger(message)
@@ -278,21 +274,7 @@ class Engine:
         status = SessionStatus(**status)
         return status
 
-    def _detect_media_type(self, name):
-        ext = os.path.splitext(name)[1]
-        if ext in self.SUBTITLES_FORMATS:
-            return MediaType.SUBTITLES
-        else:
-            mime_type = mimetypes.guess_type(name)[0]
-            if not mime_type:
-                return MediaType.UNKNOWN
-            mime_type = mime_type.split("/")[0]
-            if mime_type == 'audio':
-                return MediaType.AUDIO
-            elif mime_type == 'video':
-                return MediaType.VIDEO
-            else:
-                return MediaType.UNKNOWN
+    
 
     def list(self, media_types=None, timeout=10):
         """
@@ -307,7 +289,7 @@ class Engine:
         """
         files = self.pyrrent2http.Ls()['files']
         if files:
-            res = [FileStatus(index=index, media_type=self._detect_media_type(f['name']), **f)
+            res = [FileStatus(index=index, **f)
                    for index, f in enumerate(files)]
             if media_types is not None:
                 res = filter(lambda fs: fs.media_type in media_types, res)
