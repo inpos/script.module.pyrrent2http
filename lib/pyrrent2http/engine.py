@@ -12,7 +12,6 @@ import pyrrent2http
 import mimetypes
 import xbmc
 from error import Error
-from platform import Platform
 from . import SessionStatus, FileStatus, PeerInfo, MediaType, Encryption
 from util import can_bind, find_free_port, ensure_fs_encoding
 import threading
@@ -26,74 +25,13 @@ class Engine:
     SUBTITLES_FORMATS = ['.aqt', '.gsub', '.jss', '.sub', '.ttxt', '.pjs', '.psb', '.rt', '.smi', '.stl',
                          '.ssf', '.srt', '.ssa', '.ass', '.usf', '.idx']
 
-    __to_del = '''def _ensure_binary_executable(self, path):
-        st = os.stat(path)
-        if not st.st_mode & stat.S_IEXEC:
-            try:
-                self._log("%s is not executable, trying to change its mode..." % path)
-                os.chmod(path, st.st_mode | stat.S_IEXEC)
-            except Exception, e:
-                self._log("Failed! Exception: %s" % str(e))
-                return False
-            st = os.stat(path)
-            if st.st_mode & stat.S_IEXEC:
-                self._log("Succeeded")
-                return True
-            else:
-                self._log("Failed")
-                return False
-        return True
-    '''
     def _log(self, message):
         if self.logger:
             self.logger(message)
         else:
             xbmc.log("[pyrrent2http] %s" % message)
 
-    __to_del = '''def _get_binary_path(self, binaries_path):
-        """
-        Detects platform and returns corresponding pyrrent2http binary path
 
-        :param binaries_path:
-        :return: pyrrent2http binary path
-        """
-        binary = "torrent2http" + (".exe" if self.platform.system == 'windows' else "")
-        binary_dir = os.path.join(binaries_path, "%s_%s" % (self.platform.system, self.platform.arch))
-        binary_path = os.path.join(binary_dir, binary)
-        lm=LibraryManager(binary_dir, "%s_%s" % (self.platform.system, self.platform.arch))
-        if not os.path.isfile(binary_path):
-            success=lm.download()
-            if not success:
-                raise Error("Can't find torrent2http or download binary for %s" % self.platform,
-                            Error.UNKNOWN_PLATFORM, platform=str(self.platform))
-        #This is needed only if bin in folder that not deletes on update!
-        #else: lm.update()
-
-        if not self._ensure_binary_executable(binary_path):
-            if self.platform.system == "android":
-                self._log("Trying to copy torrent2http to ext4, since the sdcard is noexec...")
-                xbmc_home = os.environ.get('XBMC_HOME') or os.environ.get('KODI_HOME')
-                if not xbmc_home:
-                    raise Error("Suppose we are running XBMC, but environment variable "
-                                "XBMC_HOME or KODI_HOME is not found", Error.XBMC_HOME_NOT_DEFINED)
-                base_xbmc_path = dirname(dirname(dirname(xbmc_home)))
-                android_binary_dir = os.path.join(base_xbmc_path, "files")
-                if not os.path.exists(android_binary_dir):
-                    os.makedirs(android_binary_dir)
-                android_binary_path = os.path.join(android_binary_dir, binary)
-                if not os.path.exists(android_binary_path) or \
-                        int(os.path.getmtime(android_binary_path)) < int(os.path.getmtime(binary_path)):
-                    import shutil
-                    shutil.copy2(binary_path, android_binary_path)
-                    if not self._ensure_binary_executable(android_binary_path):
-                        raise Error("Can't make %s executable" % android_binary_path, Error.NOEXEC_FILESYSTEM)
-                binary_path = android_binary_path
-            else:
-                raise Error("Can't make %s executable, ensure it's placed on exec partition and "
-                            "partition is in read/write mode" % binary_path, Error.NOEXEC_FILESYSTEM)
-        self._log("Selected %s as torrent2http binary" % binary_path)
-        return binary_path
-'''
     def __init__(self, uri=None, platform=None, download_path=".",
                  bind_host='127.0.0.1', bind_port=5001, connections_limit=None, download_kbps=None, upload_kbps=None,
                  enable_dht=True, enable_lsd=True, enable_natpmp=True, enable_upnp=True, enable_scrape=False,
@@ -164,7 +102,6 @@ class Engine:
         self.platform = platform
         self.bind_host = bind_host
         self.bind_port = bind_port
-#        self.binaries_path = binaries_path or os.path.join(dirname(dirname(dirname(os.path.abspath(__file__)))), 'bin')
         self.download_path = download_path
         self.connections_limit = connections_limit
         self.download_kbps = download_kbps
@@ -196,8 +133,6 @@ class Engine:
         self.debug_alerts = debug_alerts
         self.logger = logger
         self.uri = uri
-        self.logpipe = None
-#        self.process = None
         self.started = False
 
 
@@ -228,8 +163,6 @@ class Engine:
         :param start_index: File index to start download instantly, if not specified, downloading will be paused, until
             any file requested
         """
-        self.platform = self.platform or Platform()
-#        binary_path = self._get_binary_path(self.binaries_path)
         download_path = self._validate_save_path(self.download_path)
         if not can_bind(self.bind_host, self.bind_port):
             port = find_free_port(self.bind_host)
