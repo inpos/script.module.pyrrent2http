@@ -309,9 +309,9 @@ class Engine:
         res = self.list(timeout=timeout)
         if res:
             try:
-                return next((f for f in res if f.index == file_index))
-            except StopIteration:
-                raise Error("Requested file index (%d) is invalid" % file_index, Error.INVALID_FILE_INDEX,
+                return res[file_index]
+            except IndexError:
+                raise Error("Requested file index (%d) is invalid" % (file_index,), Error.INVALID_FILE_INDEX,
                             file_index=file_index)
 
     def peers(self, timeout=10):
