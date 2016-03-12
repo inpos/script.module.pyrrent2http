@@ -323,13 +323,14 @@ class TorrentFS(object):
         return bytes_
     def __files_(self):
         info = self.TorrentInfo()
+        files_ = []
         for i in range(info.num_files()):
             file_ = self.__file_at_(i)
             file_.downloaded = self.getFileDownloadedBytes(i)
             if file_.size > 0:
                 file_.progress = float(file_.downloaded)/float(file_.size)
-            self.files.append(file_)
-        return self.files
+            files_.append(file_)
+        return files_
     def __file_at_(self, index):
         info = self.TorrentInfo()
         fileEntry = info.file_at(index)
@@ -643,7 +644,10 @@ class Pyrrent2http(object):
         except:
             info = self.torrentHandle.get_torrent_info()
         logging.info('Downloading torrent: %s' % (info.name(),))
-        self.TorrentFS = TorrentFS(self, self.torrentHandle, self.config.fileIndex)
+        try:
+            self.TorrentFS = TorrentFS(self, self.torrentHandle, self.config.fileIndex)
+        except Exception as e:
+            logging.error(e.args)
     
     def startHTTP(self):
         #def http_server_loop(listener, alive):
