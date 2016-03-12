@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
-import json
 import os
-import socket
-import stat
 import sys
 import time
-import urllib2
-import httplib
-from os.path import dirname
 import pyrrent2http
 import xbmc
 from error import Error
@@ -130,8 +124,6 @@ class Engine:
         self.logger = logger
         self.uri = uri
         self.started = False
-        self.fullStart = True
-
 
     @staticmethod
     def _validate_save_path(path):
@@ -150,7 +142,7 @@ class Engine:
                 raise Error("Downloading to an unmounted network share is not supported", Error.INVALID_DOWNLOAD_PATH)
         if not os.path.isdir(localize_path(path)):
             raise Error("Download path doesn't exist (%s)" % path, Error.INVALID_DOWNLOAD_PATH)
-        return path
+        return localize_path(path)
 
     def start(self, start_index=None):
         """
@@ -160,6 +152,7 @@ class Engine:
         :param start_index: File index to start download instantly, if not specified, downloading will be paused, until
             any file requested
         """
+
         download_path = self._validate_save_path(self.download_path)
         if not can_bind(self.bind_host, self.bind_port):
             port = find_free_port(self.bind_host)
@@ -232,7 +225,7 @@ class Engine:
         self.pyrrent2http_loop.start()
         
 
-        '''start = time.time()
+        start = time.time()
         self.started = True
         initialized = False
         while (time.time() - start) < self.startup_timeout:
@@ -248,7 +241,7 @@ class Engine:
 
         if not initialized:
             self.started = False
-            raise Error("Can't start pyrrent2http, time is out", Error.TIMEOUT)'''
+            raise Error("Can't start pyrrent2http, time is out", Error.TIMEOUT)
         self._log("pyrrent2http successfully started.")
 
     def check_torrent_error(self, status=None):
@@ -295,7 +288,6 @@ class Engine:
                 res = filter(lambda fs: fs.media_type in media_types, res)
             return res
     def list_from_info(self):
-        self.fullStart = False
         try:
             info = pyrrent2http.lt.torrent_info(uri2path(self.uri))
         except:
@@ -365,7 +357,7 @@ class Engine:
         Shuts down pyrrent2http and stops logging. If wait_on_close() was called earlier, it will wait until
         pyrrent2http successfully exits.
         """
-        if self.fullStart and self.is_alive():
+        if self.is_alive():
             self._log("Shutting down pyrrent2http...")
             self.pyrrent2http.shutdown()
             finished = False

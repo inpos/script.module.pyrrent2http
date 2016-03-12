@@ -142,7 +142,7 @@ class TorrentFile(object):
     def __init__(self, tfs, fileEntry, savePath, index):
         self.tfs = tfs
         self.fileEntry = fileEntry
-        self.name = self.Name()
+        self.name = self.fileEntry.path
         self.unicode_name = self.name.decode(chardet.detect(self.name)['encoding'])
         self.media_type = detect_media_type(self.unicode_name)
         self.save_path = savePath
@@ -157,7 +157,7 @@ class TorrentFile(object):
         return self.downloaded
     def Progress(self):
         return self.progress
-    def FilePtr(self):
+    def __fileptr_(self):
         if self.closed:
             return None
         if self.filePtr is None:
@@ -221,7 +221,7 @@ class TorrentFile(object):
                 str_ += "#"
         self.log(str_)
     def Read(self, buf):
-        filePtr = self.FilePtr()
+        filePtr = self.__fileptr_()
         if filePtr is None:
             raise IOError
         toRead = len(buf)
@@ -236,7 +236,7 @@ class TorrentFile(object):
         read = filePtr.readinto(buf)
         return read
     def Seek(self, offset, whence):
-        filePtr = self.FilePtr()
+        filePtr = self.__fileptr_()
         if filePtr is None: return
         if whence == os.SEEK_END:
             offset = self.size - offset
@@ -244,10 +244,6 @@ class TorrentFile(object):
         newOffset = filePtr.seek(offset, whence)
         self.log('Seeking to %d/%d' % (newOffset, self.size))
         return newOffset
-    def Name(self):
-        return self.fileEntry.path
-    def Size(self):
-        return self.fileEntry.size
     def IsComplete(self):
         return self.downloaded == self.size
 
@@ -270,7 +266,7 @@ class TorrentFS(object):
         self.waitForMetadata()
         self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = list(self.handle.file_priorities())
-        self.files = []
+        self.files = self.__files_()
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
         for i in range(self.TorrentInfo().num_files()):
@@ -285,8 +281,6 @@ class TorrentFS(object):
             logging.info('Closing %d opened file(s)' % (len(self.openedFiles),))
             for f in self.openedFiles:
                 f.Close()
-    def LastOpenedFile(self):
-        return self.lastOpenedFile  
     def addOpenedFile(self, file_):
         self.openedFiles.append(file_)    
     def setPriority(self, index, priority):
@@ -327,21 +321,17 @@ class TorrentFS(object):
         except IndexError:
             bytes_ = 0
         return bytes_
-    def Files(self):
-        if len(self.files) > 0:
-            return self.files
+    def __files_(self):
         info = self.TorrentInfo()
         for i in range(info.num_files()):
-            file_ = self.FileAt(i)
+            file_ = self.__file_at_(i)
             file_.downloaded = self.getFileDownloadedBytes(i)
             if file_.size > 0:
                 file_.progress = float(file_.downloaded)/float(file_.size)
             self.files.append(file_)
         return self.files
-    def FileAt(self, index):
+    def __file_at_(self, index):
         info = self.TorrentInfo()
-        if index < 0 or index >= info.num_files():
-            raise IndexError
         fileEntry = info.file_at(index)
         fe_path = fileEntry.path
         path = os.path.abspath(os.path.join(self.save_path, localize_path(fe_path)))
@@ -353,7 +343,7 @@ class TorrentFS(object):
                            )
     def FileByName(self, name):
         savePath = os.path.abspath(os.path.join(self.save_path, localize_path(name)))
-        for file_ in self.Files():
+        for file_ in self.files:
             if file_.save_path == savePath:
                 return file_
         raise IOError
@@ -401,7 +391,7 @@ def HttpHandlerFactory():
         def do_GET(self):
             #print ('---Headers---\n%s\n' % (self.headers,))
             #print ('---Request---\n%s\n' % (self.path,))
-            if self.path == '/status':
+            '''if self.path == '/status':
                 self.statusHandler()
             elif self.path == '/ls':
                 self.lsHandler()
@@ -417,7 +407,8 @@ def HttpHandlerFactory():
                 self.server.server_close()
                 self.end_headers()
                 self.wfile.write('OK')
-            elif self.path.startswith('/files/'):
+            elif self.path.startswith('/files/'):'''
+            if self.path.startswith('/files/'):
                 self.filesHandler()
             else:
                 self.send_error(404, 'Not found')
@@ -478,28 +469,28 @@ def HttpHandlerFactory():
             self.end_headers()
             #print "Sending Bytes ",start_range, " to ", end_range, "...\n"
             return (f, start_range, end_range)
-        def statusHandler(self):
+        '''def statusHandler(self):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             status = self.server.root_obj.Status()
             output = json.dumps(status)
-            self.wfile.write(output)
-        def lsHandler(self):
+            self.wfile.write(output)'''
+        '''def lsHandler(self):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             retFiles = self.server.root_obj.Ls()
             output = json.dumps(retFiles)
-            self.wfile.write(output)
-        def peersHandler(self):
+            self.wfile.write(output)'''
+        '''def peersHandler(self):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             peers = self.server.root_obj.Peers()
             output = json.dumps(peers)
-            self.wfile.write(output)
-        def trackersHandler(self):
+            self.wfile.write(output)'''
+        '''def trackersHandler(self):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -527,7 +518,7 @@ def HttpHandlerFactory():
                         }
                 ret.append(pi)
             output = json.dumps(ret)
-            self.wfile.write(output)
+            self.wfile.write(output)'''
         # Вырубаем access-log
         def log_message(self, format, *args):
             return
@@ -807,7 +798,7 @@ class Pyrrent2http(object):
     def Ls(self):
         retFiles = {'files': []}
         if self.TorrentFS.HasTorrentInfo():
-            files = self.TorrentFS.Files()
+            files = self.TorrentFS.files
             for file_ in files:
                 Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(file_.name)
                 fi = {
@@ -863,11 +854,11 @@ class Pyrrent2http(object):
                          )
             if self.config.showFilesProgress or self.config.showAllStats:
                 str_ = 'Files: '
-                for i, f in enumerate(self.TorrentFS.Files()):
+                for i, f in enumerate(self.TorrentFS.files):
                     str_ += '[%d] %.2f%% ' % (i, f.Progress()*100)
                 logging.info(str_)
-            if (self.config.showPiecesProgress or self.config.showAllStats) and self.TorrentFS.LastOpenedFile() != None:
-                self.TorrentFS.LastOpenedFile().ShowPieces()
+            if (self.config.showPiecesProgress or self.config.showAllStats) and self.TorrentFS.lastOpenedFile != None:
+                self.TorrentFS.lastOpenedFile.ShowPieces()
 
     def consumeAlerts(self):
         alerts = self.session.pop_alerts()
@@ -959,7 +950,7 @@ class Pyrrent2http(object):
     def filesToRemove(self):
         files = []
         if self.TorrentFS.HasTorrentInfo():
-            for file in self.TorrentFS.Files():
+            for file in self.TorrentFS.files:
                 if (not self.config.keepComplete or not file.IsComplete()) and (not self.config.keepIncomplete or file.IsComplete()):
                     if os.path.exists(file.save_path):
                         files.append(file.save_path)
