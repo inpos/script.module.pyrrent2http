@@ -233,7 +233,7 @@ class Engine:
             if not self.is_alive():
                 raise Error("Can't start pyrrent2http, see log for details", Error.PROCESS_ERROR)
             try:
-                self.status(1)
+                #self.status(1)
                 initialized = True
                 break
             except Error:

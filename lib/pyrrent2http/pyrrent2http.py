@@ -269,7 +269,7 @@ class TorrentFS(object):
         self.files = self.__files_()
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
-        for i in range(self.TorrentInfo().num_files()):
+        for i in range(self.info.num_files()):
             if startIndex == i:
                 self.setPriority(i, 1)
             else:
@@ -306,10 +306,6 @@ class TorrentFS(object):
             self.info = self.handle.get_torrent_info()
     def HasTorrentInfo(self):
         return self.info is not None
-    def TorrentInfo(self):
-        while not isinstance(self.info, lt.torrent_info):
-            time.sleep(0.1)
-        return self.info
     def LoadFileProgress(self):
         self.progresses = self.handle.file_progress()
         for i, f in enumerate(self.files):
@@ -322,7 +318,7 @@ class TorrentFS(object):
             bytes_ = 0
         return bytes_
     def __files_(self):
-        info = self.TorrentInfo()
+        info = self.info
         files_ = []
         for i in range(info.num_files()):
             file_ = self.__file_at_(i)
@@ -332,7 +328,7 @@ class TorrentFS(object):
             files_.append(file_)
         return files_
     def __file_at_(self, index):
-        info = self.TorrentInfo()
+        info = self.info
         fileEntry = info.file_at(index)
         fe_path = fileEntry.path
         path = os.path.abspath(os.path.join(self.save_path, localize_path(fe_path)))
@@ -881,8 +877,6 @@ class Pyrrent2http(object):
                 if isinstance(alert, alertClass):
                     return alert
     def loop(self):
-        def sigterm_handler(_signo, _stack_frame):
-            self.forceShutdown = True
         self.statsTicker = Ticker(30)
         self.saveResumeDataTicker = Ticker(5)
         time_start = time.time()
