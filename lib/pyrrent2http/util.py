@@ -41,7 +41,7 @@ def detect_media_type(name):
             return MediaType.VIDEO
         else:
             return MediaType.UNKNOWN
-def normalize_msg(tmpl, *args):
+def normalize_msg(tmpl, args):
     msg = isinstance(tmpl, unicode) and tmpl or tmpl.decode(chardet.detect(tmpl)['encoding'])
     arg_ = []
     for a in args:

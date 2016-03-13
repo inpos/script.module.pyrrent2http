@@ -162,7 +162,7 @@ class TorrentFile(object):
             return None
         if self.filePtr is None:
             while not os.path.exists(self.save_path):
-                logging.info('Waiting: %s' % (self.save_path,))
+                logging.info('Waiting for file: %s' % (self.save_path,))
                 time.sleep(0.5)
             self.filePtr = io.open(self.save_path, 'rb')
         return self.filePtr
@@ -595,7 +595,7 @@ class Pyrrent2http(object):
     def buildTorrentParams(self, uri):
         try:
             absPath = uri2path(uri)
-            logging.info(normalize_msg('Opening local torrent file: %s', absPath))
+            logging.info(normalize_msg('Opening local torrent file: %s', (absPath,)))
             torrent_info = lt.torrent_info(absPath)
         except Exception as e:
             strerror = e.args
