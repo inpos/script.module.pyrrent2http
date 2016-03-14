@@ -6,7 +6,7 @@ import pyrrent2http
 import xbmc
 from error import Error
 from . import SessionStatus, FileStatus, PeerInfo, Encryption
-from util import can_bind, find_free_port, localize_path, uri2path
+from util import can_bind, find_free_port, localize_path, uri2path, normalize_msg
 import threading
 
 LOGGING = True
@@ -19,7 +19,7 @@ class Engine:
         if self.logger:
             self.logger(message)
         else:
-            xbmc.log("[pyrrent2http] %s" % message)
+            xbmc.log(normalize_msg("[pyrrent2http] %s", (message,)))
 
 
     def __init__(self, uri=None, platform=None, download_path=".",
