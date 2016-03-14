@@ -522,12 +522,7 @@ def HttpHandlerFactory():
     return HttpHandler
 
 class Pyrrent2http(object):
-    def __init__(self):
-        self.torrentHandle = None
-        self.forceShutdown = False
-        self.session = None
-        self.magnet = False
-    def initConfig(self, uri = '', bindAddress = 'localhost:5001', downloadPath = '.',
+    def __init__(self, uri = '', bindAddress = 'localhost:5001', downloadPath = '.',
                     idleTimeout = -1, fileIndex = -1, keepComplete = False, 
                     keepIncomplete = False, keepFiles = False, showAllStats = False, 
                     showOverallProgress = False, showFilesProgress = False, 
@@ -540,6 +535,11 @@ class Pyrrent2http(object):
                     minReconnectTime = 60, maxFailCount = 3, noSparseFile = False,
                     randomPort = False, enableScrape = False, enableDHT = True,
                     enableLSD = True, enableUPNP = True, enableNATPMP = True, enableUTP = True, enableTCP = True):
+        self.torrentHandle = None
+        self.forceShutdown = False
+        self.session = None
+        self.magnet = False
+
         self.config = Struct()
         self.config.uri = uri
         self.config.bindAddress = bindAddress

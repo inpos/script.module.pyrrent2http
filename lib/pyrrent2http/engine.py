@@ -215,8 +215,7 @@ class Engine:
                     self._log('ERROR: %s' % (message,))
         pyrrent2http.logging = Logging(self._log)
         
-        self.pyrrent2http = pyrrent2http.Pyrrent2http()
-        self.pyrrent2http.initConfig(**kwargs)
+        self.pyrrent2http = pyrrent2http.Pyrrent2http(**kwargs)
         self.pyrrent2http.startSession()
         self.pyrrent2http.startServices()
         self.pyrrent2http.addTorrent()
