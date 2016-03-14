@@ -24,7 +24,7 @@ import BaseHTTPServer
 import SocketServer
 import threading
 import io
-from util import localize_path, Struct, detect_media_type, uri2path, normalize_msg
+from util import localize_path, Struct, detect_media_type, uri2path, encode_msg
 
 
 ######################################################################################
@@ -592,8 +592,8 @@ class Pyrrent2http(object):
     def buildTorrentParams(self, uri):
         try:
             absPath = uri2path(uri)
-            logging.info(normalize_msg('Opening local torrent file: %s', (absPath,)))
-            torrent_info = lt.torrent_info(absPath)
+            logging.info('Opening local torrent file: %s' % encode_msg(absPath))
+            torrent_info = lt.torrent_info(lt.bdecode(open(absPath, 'rb').read()))
         except Exception as e:
             strerror = e.args
             logging.error('Build torrent params error is (%s)' % (strerror,))

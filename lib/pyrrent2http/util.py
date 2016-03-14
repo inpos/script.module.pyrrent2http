@@ -41,12 +41,16 @@ def detect_media_type(name):
             return MediaType.VIDEO
         else:
             return MediaType.UNKNOWN
-def normalize_msg(tmpl, args):
+def unicode_msg(tmpl, args):
     msg = isinstance(tmpl, unicode) and tmpl or tmpl.decode(chardet.detect(tmpl)['encoding'])
     arg_ = []
     for a in args:
         arg_.append(isinstance(a, unicode) and a or a.decode(chardet.detect(a)['encoding']))
     return msg % tuple(arg_)
+
+def encode_msg(msg):
+    msg = isinstance(msg, unicode) and msg.encode(True and sys.getfilesystemencoding() or 'utf-8') or msg
+    return msg
     
 
 def localize_path(path):
