@@ -592,6 +592,7 @@ class Pyrrent2http(object):
     def buildTorrentParams(self, uri):
         try:
             absPath = uri2path(uri)
+            logging.info('absPath: %s' % (repr(absPath)))
             logging.info(normalize_msg('Opening local torrent file: %s', (absPath,)))
             torrent_info = lt.torrent_info(absPath)
         except Exception as e:
