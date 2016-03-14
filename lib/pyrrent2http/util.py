@@ -45,7 +45,7 @@ def normalize_msg(tmpl, args):
     msg = isinstance(tmpl, unicode) and tmpl or tmpl.decode(chardet.detect(tmpl)['encoding'])
     arg_ = []
     for a in args:
-        if not isinstance(a, unicode): arg_.append(a.decode(chardet.detect(a)['encoding']))
+        arg_.append(isinstance(a, unicode) and a or a.decode(chardet.detect(a)['encoding']))
     return msg % tuple(arg_)
     
 
