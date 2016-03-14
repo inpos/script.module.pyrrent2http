@@ -163,6 +163,7 @@ class TorrentFile(object):
         if self.filePtr is None:
             while not os.path.exists(self.save_path):
                 logging.info('Waiting for file: %s' % (self.save_path,))
+                self.tfs.handle.flush_cache()
                 time.sleep(0.5)
             self.filePtr = io.open(self.save_path, 'rb')
         return self.filePtr
@@ -606,7 +607,8 @@ class Pyrrent2http(object):
             logging.info('Loading resume file: %s' % (self.config.resumeFile,))
             try:
                 with open(self.config.resumeFile, 'rb') as f:
-                    torrentParams['resume_data'] = lt.bencode(f.read())
+                    torrentParams["auto_managed"] = True
+                    torrentParams['resume_data'] = f.read()
             except Exception as e:
                 strerror = e.args
                 logging.error(strerror)
@@ -863,10 +865,10 @@ class Pyrrent2http(object):
     def consumeAlerts(self):
         alerts = self.session.pop_alerts()
         for alert in alerts:
-            if isinstance(alert, lt.save_resume_data_alert):
+            if type(alert) == lt.save_resume_data_alert:
                 self.processSaveResumeDataAlert(alert)
                 break
-    def waitForAlert(self, alertClass, timeout):
+    def waitForAlert(self, alert_type, timeout):
         start = time.time()
         while True:
             alert = self.session.wait_for_alert(100)
@@ -874,7 +876,7 @@ class Pyrrent2http(object):
                 return None
             if alert is not None:
                 alert = self.session.pop_alert()
-                if isinstance(alert, alertClass):
+                if type(alert) == alert_type:
                     return alert
     def loop(self):
         self.statsTicker = Ticker(30)
@@ -910,7 +912,7 @@ class Pyrrent2http(object):
     def saveResumeData(self, async = False):
         if not self.torrentHandle.status().need_save_resume or self.config.resumeFile == '':
             return False
-        self.torrentHandle.save_resume_data(3)
+        self.torrentHandle.save_resume_data(lt.save_resume_flags_t.flush_disk_cache)
         if not async:
             alert = self.waitForAlert(lt.save_resume_data_alert, 5)
             if alert == None:
@@ -957,7 +959,6 @@ class Pyrrent2http(object):
         files = []
         flag = 0
         state = self.torrentHandle.status().state
-        #if state != state.checking_files and state != state.queued_for_checking and not self.config.keepFiles:
         if state != state.checking_files and not self.config.keepFiles:
             if not self.config.keepComplete and not self.config.keepIncomplete:
                 flag = int(lt.options_t.delete_files)
@@ -975,7 +976,6 @@ class Pyrrent2http(object):
         self.statsTicker.stop()
         self.saveResumeDataTicker.stop()
         self.httpListener.shutdown()
-        #self.main_alive.clear()
         self.TorrentFS.Shutdown()
         if self.session != None:
             self.session.pause()
