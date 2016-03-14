@@ -604,7 +604,7 @@ class Pyrrent2http(object):
         torrentParams['save_path'] = self.config.downloadPath
         
         if os.path.exists(self.config.resumeFile):
-            logging.info('Loading resume file: %s' % (self.config.resumeFile,))
+            logging.info('Loading resume file: %s' % (encode_msg(self.config.resumeFile),))
             try:
                 with open(self.config.resumeFile, 'rb') as f:
                     torrentParams["auto_managed"] = True
@@ -632,7 +632,7 @@ class Pyrrent2http(object):
             startTier   = 256 - len(trackers)
             for n in range(len(trackers)):
                 tracker = trackers[n].strip()
-                logging.info('Adding tracker: %s', tracker)
+                logging.info('Adding tracker: %s' % (tracker,) )
                 self.torrentHandle.add_tracker(tracker, startTier + n)
         if self.config.enableScrape:
             logging.info('Sending scrape request to tracker')
@@ -901,7 +901,7 @@ class Pyrrent2http(object):
             time.sleep(0.3)
 
     def processSaveResumeDataAlert(self, alert):
-        logging.info('Saving resume data to: %s' % (self.config.resumeFile))
+        logging.info('Saving resume data to: %s' % (encode_msg(self.config.resumeFile),))
         data = lt.bencode(alert.resume_data)
         try:
             with open(self.config.resumeFile, 'wb') as f:
@@ -924,9 +924,9 @@ class Pyrrent2http(object):
             return
         entry = self.session.save_state()
         data = lt.bencode(entry)
-        logging.info('Saving session state to: %s' % (self.config.stateFile,))
+        logging.info('Saving session state to: %s' % (encode_msg(self.config.stateFile),))
         try:
-            logging.info('Saving session state to: %s' % (self.config.stateFile,))
+            logging.info('Saving session state to: %s' % (encode_msg(self.config.stateFile),))
             with open(self.config.stateFile, 'wb') as f:
                 f.write(data)
         except IOError as e:
