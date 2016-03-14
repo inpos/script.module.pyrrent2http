@@ -592,7 +592,7 @@ class Pyrrent2http(object):
     def buildTorrentParams(self, uri):
         try:
             absPath = uri2path(uri)
-            logging.info('Opening local torrent file: %s' % encode_msg(absPath))
+            logging.info('Opening local torrent file: %s' % (encode_msg(absPath),))
             torrent_info = lt.torrent_info(lt.bdecode(open(absPath, 'rb').read()))
         except Exception as e:
             strerror = e.args
@@ -600,7 +600,7 @@ class Pyrrent2http(object):
             raise
         torrentParams = {}
         torrentParams['ti'] = torrent_info
-        logging.info('Setting save path: %s' % (self.config.downloadPath,))
+        logging.info('Setting save path: %s' % (encode_msg(self.config.downloadPath),))
         torrentParams['save_path'] = self.config.downloadPath
         
         if os.path.exists(self.config.resumeFile):
