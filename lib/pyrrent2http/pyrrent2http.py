@@ -632,6 +632,7 @@ class Pyrrent2http(object):
         # Также, у нас перемотка. Т.е. произвольный доступ.
         # Значит, последовательная загрузка нам будет только вредить
         #
+        self.torrentHandle.set_max_connections(60)
         if self.config.trackers != '':
             trackers    = self.config.trackers.split(',')
             startTier   = 256 - len(trackers)
