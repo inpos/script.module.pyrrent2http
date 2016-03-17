@@ -783,6 +783,7 @@ class Pyrrent2http(object):
             logging.info('Encryption not supported: %s' % (e.args,))
     
     def Status(self):
+        logging.info('++++++++++ entering status')
         try:
             info = self.torrentHandle.torrent_file()
         except:
