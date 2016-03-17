@@ -787,7 +787,9 @@ class Pyrrent2http(object):
         #    info = self.torrentHandle.torrent_file()
         #except:
         #    info = self.torrentHandle.get_torrent_info()
+        logging.info('getting status')
         tstatus = self.torrentHandle.status()
+        logging.info('status is here')
 
         status = {
         #             'name'           :   info.name(),
