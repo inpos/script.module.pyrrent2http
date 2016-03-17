@@ -783,22 +783,22 @@ class Pyrrent2http(object):
     def Status(self):
         info = self.TorrentFS.info
         #tstatus = self.torrentHandle.status()
-        tstatus = self.TorrentFS.handle.status()
+        #tstatus = self.TorrentFS.handle.status()
 
         status = {
                      'name'           :   info.name(),
-                     'state'          :   int(tstatus.state),
-                     'state_str'       :   str(tstatus.state),
-                     'error'          :   tstatus.error,
-                     'progress'       :   tstatus.progress,
-                     'download_rate'   :   tstatus.download_rate / 1024,
-                     'upload_rate'     :   tstatus.upload_rate / 1024,
-                     'total_download'  :   tstatus.total_download,
-                     'total_upload'    :   tstatus.total_upload,
-                     'num_peers'       :   tstatus.num_peers,
-                     'num_seeds'       :   tstatus.num_seeds,
-                     'total_seeds'     :   tstatus.num_complete,
-                     'total_peers'     :   tstatus.num_incomplete
+                     'state'          :   int(self.torrentHandle.status().state),
+                     'state_str'       :   str(self.torrentHandle.status().state),
+                     'error'          :   self.torrentHandle.status().error,
+                     'progress'       :   self.torrentHandle.status().progress,
+                     'download_rate'   :   self.torrentHandle.status().download_rate / 1024,
+                     'upload_rate'     :   self.torrentHandle.status().upload_rate / 1024,
+                     'total_download'  :   self.torrentHandle.status().total_download,
+                     'total_upload'    :   self.torrentHandle.status().total_upload,
+                     'num_peers'       :   self.torrentHandle.status().num_peers,
+                     'num_seeds'       :   self.torrentHandle.status().num_seeds,
+                     'total_seeds'     :   self.torrentHandle.status().num_complete,
+                     'total_peers'     :   self.torrentHandle.status().num_incomplete
                      }
         return status
     def Ls(self):
