@@ -333,6 +333,7 @@ class TorrentFS(object):
             file_.downloaded = self.getFileDownloadedBytes(i)
             if file_.size > 0:
                 file_.progress = float(file_.downloaded)/float(file_.size)
+            logging.info('adding file: %s' % (file_.name,))
             files_.append(file_)
         return files_
     def __file_at_(self, index):
