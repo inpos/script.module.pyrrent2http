@@ -264,7 +264,9 @@ class TorrentFS(object):
     def __init__(self, root, handle, startIndex):
         self.root = root
         self.handle = handle
+        logging.info('Start waiting for metadata')
         self.waitForMetadata()
+        logging.info('Metadata is here')
         self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = list(self.handle.file_priorities())
         self.files = self.__files_()
