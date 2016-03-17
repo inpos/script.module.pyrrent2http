@@ -782,7 +782,8 @@ class Pyrrent2http(object):
     
     def Status(self):
         info = self.TorrentFS.info
-        tstatus = self.torrentHandle.status()
+        #tstatus = self.torrentHandle.status()
+        tstatus = self.TorrentFS.handle.status()
 
         status = {
                      'name'           :   info.name(),
