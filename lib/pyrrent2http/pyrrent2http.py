@@ -264,19 +264,15 @@ class TorrentFS(object):
     def __init__(self, root, handle, startIndex):
         self.root = root
         self.handle = handle
-        logging.info('Start waiting for metadata')
         self.waitForMetadata()
-        logging.info('Metadata is here')
         self.save_path = localize_path(self.root.torrentParams['save_path'])
-        logging.info('Start getting priorities')
         self.priorities = list(self.handle.file_priorities())
-        logging.info('priorities is here')
         self.files = self.__files_()
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
-        logging.info('Start getting num_files')
+
         num_files = self.info.num_files()
-        logging.info('Snum_files is here')
+
         for i in range(num_files):
             if startIndex == i:
                 self.setPriority(i, 1)
@@ -783,18 +779,16 @@ class Pyrrent2http(object):
             logging.info('Encryption not supported: %s' % (e.args,))
     
     def Status(self):
-        #try:
-        #    info = self.torrentHandle.torrent_file()
-        #except:
-        #    info = self.torrentHandle.get_torrent_info()
+        try:
+            info = self.torrentHandle.torrent_file()
+        except:
+            info = self.torrentHandle.get_torrent_info()
         logging.info('getting status')
         tstatus = self.torrentHandle.status()
         logging.info('status is here')
 
         status = {
-        #             'name'           :   info.name(),
-
-                     'name'           :   self.TorrentFS.path.split('/')[-1],
+                     'name'           :   info.name(),
                      'state'          :   int(tstatus.state),
                      'state_str'       :   str(tstatus.state),
                      'error'          :   tstatus.error,
