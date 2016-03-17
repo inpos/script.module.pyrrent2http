@@ -268,7 +268,9 @@ class TorrentFS(object):
         self.waitForMetadata()
         logging.info('Metadata is here')
         self.save_path = localize_path(self.root.torrentParams['save_path'])
+        logging.info('Start getting priorities')
         self.priorities = list(self.handle.file_priorities())
+        logging.info('priorities is here')
         self.files = self.__files_()
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
