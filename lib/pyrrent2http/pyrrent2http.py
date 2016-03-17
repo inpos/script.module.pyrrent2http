@@ -785,7 +785,7 @@ class Pyrrent2http(object):
         #    info = self.torrentHandle.get_torrent_info()
         info = self.TorrentFS.info
         logging.info('getting status')
-        tstatus = self.torrentHandle.status()
+        tstatus = self.torrentHandle.status(0)
         logging.info('status is here')
 
         status = {
