@@ -279,8 +279,7 @@ class TorrentFS(object):
                 self.setPriority(i, 1)
             else:
                 self.setPriority(i, 0)
-    def Status(self):
-        return self.handle.status()
+
     def Shutdown(self):
         self.shuttingDown = True
         if len(self.openedFiles) > 0:
@@ -785,7 +784,7 @@ class Pyrrent2http(object):
         info = self.TorrentFS.info
         #tstatus = self.torrentHandle.status()
         #tstatus = self.TorrentFS.handle.status()
-        tstatus = self.TorrentFS.Status()
+        tstatus = self.torrentHandle.status()
 
         status = {
                      'name'           :   info.name(),
