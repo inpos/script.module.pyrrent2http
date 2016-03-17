@@ -272,7 +272,10 @@ class TorrentFS(object):
         self.files = self.__files_()
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
-        for i in range(self.info.num_files()):
+        logging.info('Start getting num_files')
+        num_files = self.info.num_files()
+        logging.info('Snum_files is here')
+        for i in range(num_files):
             if startIndex == i:
                 self.setPriority(i, 1)
             else:
