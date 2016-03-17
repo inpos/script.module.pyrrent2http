@@ -791,6 +791,7 @@ class Pyrrent2http(object):
 
         status = {
         #             'name'           :   info.name(),
+
                      'name'           :   self.TorrentFS.name.split('/')[-1],
                      'state'          :   int(tstatus.state),
                      'state_str'       :   str(tstatus.state),
