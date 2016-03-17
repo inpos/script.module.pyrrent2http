@@ -268,7 +268,7 @@ class TorrentFS(object):
         self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = list(self.handle.file_priorities())
         self.files = self.__files_()
-        self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
+        #self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
 
@@ -375,7 +375,7 @@ class TorrentFS(object):
         tf.num = self.fileCounter
         tf.log('Opening %s...' % (tf.name,))
         tf.SetPriority(1)
-        #self.handle.set_piece_deadline(tf.startPiece, 50)
+        self.handle.set_piece_deadline(tf.startPiece, 50)
         self.lastOpenedFile = tf
         self.addOpenedFile(tf)
         self.checkPriorities()
