@@ -196,7 +196,7 @@ class Engine:
             'maxFailCount': self.max_failcount,
             'showPiecesProgress': self.log_pieces_progress,
             'idleTimeout': self.max_idle_timeout,
-            'fileIndex': start_index,
+            #'fileIndex': start_index,
             'connectionsLimit': self.connections_limit,
             'enableScrape': self.enable_scrape,
             'enableUTP': self.enable_utp,
@@ -244,6 +244,9 @@ class Engine:
             self.started = False
             raise Error("Can't start pyrrent2http, time is out", Error.TIMEOUT)
         self._log("pyrrent2http successfully started.")
+
+    def activate_file(self, index):
+        self.pyrrent2http.TorrentFS.file(index)
 
     def check_torrent_error(self, status=None):
         """
@@ -324,11 +327,10 @@ class Engine:
         :return: File with specified index
         :rtype: FileStatus
         """
-        files = self.pyrrent2http.Ls()['files']
-        if files:
-            for f in files:
-                if f['index'] == file_index:
-                    return FileStatus(**f)
+        filestatus = self.pyrrent2http.Ls(file_index)
+        try:
+            return FileStatus(**filestatus)
+        except:
             raise Error("Requested file index (%d) is invalid" % (file_index,), Error.INVALID_FILE_INDEX,
                             file_index=file_index)
 

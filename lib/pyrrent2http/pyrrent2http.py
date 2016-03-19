@@ -261,25 +261,21 @@ class TorrentFS(object):
     progresses  =       list()
     save_path   =       None
 
-    def __init__(self, root, handle, startIndex):
+    def __init__(self, root, handle):
         self.root = root
         self.handle = handle
         self.waitForMetadata()
         self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = list(self.handle.file_priorities())
-        file_ = self.__file_at_(startIndex)
+        num_files = self.info.num_files()
+        for i in range(num_files):
+            self.setPriority(i, 0)
+    def file(self, index):
+        file_ = self.__file_at_(index)
         self.files = {file_.name: file_}
         #self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
-        if startIndex < 0:
-            logging.info('No -file-index specified, downloading will be paused until any file is requested')
-
-        num_files = self.info.num_files()
-
-        for i in range(num_files):
-            if startIndex == i:
-                self.setPriority(i, 1)
-            else:
-                self.setPriority(i, 0)
+        self.setPriority(index, 1)
+        return file_
 
     def Shutdown(self):
         self.shuttingDown = True
@@ -462,7 +458,7 @@ def HttpHandlerFactory():
 
 class Pyrrent2http(object):
     def __init__(self, uri = '', bindAddress = 'localhost:5001', downloadPath = '.',
-                    idleTimeout = -1, fileIndex = -1, keepComplete = False, 
+                    idleTimeout = -1, keepComplete = False, 
                     keepIncomplete = False, keepFiles = False, showAllStats = False, 
                     showOverallProgress = False, showFilesProgress = False, 
                     showPiecesProgress = False, debugAlerts = False,
@@ -484,7 +480,7 @@ class Pyrrent2http(object):
         self.config.bindAddress = bindAddress
         self.config.downloadPath = downloadPath
         self.config.idleTimeout = idleTimeout
-        self.config.fileIndex = fileIndex
+        #self.config.fileIndex = fileIndex
         self.config.keepComplete = keepComplete
         self.config.keepIncomplete = keepIncomplete
         self.config.keepFiles = keepFiles
@@ -582,9 +578,12 @@ class Pyrrent2http(object):
             info = self.torrentHandle.get_torrent_info()
         logging.info('Downloading torrent: %s' % (info.name(),))
         try:
-            self.TorrentFS = TorrentFS(self, self.torrentHandle, self.config.fileIndex)
+            self.TorrentFS = TorrentFS(self, self.torrentHandle)
         except Exception as e:
             logging.error(e.args)
+        #_ = self.TorrentFS.file(self.config.fileIndex)
+        name = self.TorrentFS.info.name()
+        self.torrent_name = name.decode(chardet.detect(name)['encoding'])
     
     def startHTTP(self):
         #def http_server_loop(listener, alive):
@@ -720,7 +719,7 @@ class Pyrrent2http(object):
         tstatus = self.torrentHandle.status()
 
         status = {
-                     'name'           :   info.name(),
+                     'name'           :   self.torrent_name,
                      'state'          :   int(tstatus.state),
                      'state_str'       :   str(tstatus.state),
                      'error'          :   tstatus.error,
@@ -735,25 +734,25 @@ class Pyrrent2http(object):
                      'total_peers'     :   tstatus.num_incomplete
                      }
         return status
-    def Ls(self):
-        retFiles = {'files': []}
+    def Ls(self, index):
+        fi = {}
         if self.TorrentFS.HasTorrentInfo():
+            x = [n for n in self.TorrentFS.files.keys() if self.TorrentFS.files[n].index == index]
+            name = x[0]
             files = self.TorrentFS.files
-            for name in files.keys():
-                Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(name)
-                fi = {
-                      'index':      files[name].index,
-                      'name':       files[name].unicode_name,
-                      'media_type': files[name].media_type,
-                      'size':       files[name].size,
-                      'offset':     files[name].offset,
-                      'download':   files[name].downloaded,
-                      'progress':   files[name].progress,
-                      'save_path':  files[name].save_path,
-                      'url':        Url
-                      }
-                retFiles['files'].append(fi)
-        return retFiles
+            Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(name)
+            fi = {
+                  'index':      files[name].index,
+                  'name':       files[name].unicode_name,
+                  'media_type': files[name].media_type,
+                  'size':       files[name].size,
+                  'offset':     files[name].offset,
+                  'download':   files[name].downloaded,
+                  'progress':   files[name].progress,
+                  'save_path':  files[name].save_path,
+                  'url':        Url
+                  }
+        return fi
     def Peers(self):
         peers = {'peers': []}
         for peer in self.torrentHandle.get_peer_info():
