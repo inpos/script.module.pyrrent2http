@@ -267,12 +267,13 @@ class TorrentFS(object):
         self.waitForMetadata()
         self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = list(self.handle.file_priorities())
+        self.files = {}
         num_files = self.info.num_files()
         for i in range(num_files):
             self.setPriority(i, 0)
     def file(self, index):
         file_ = self.__file_at_(index)
-        self.files = {file_.name: file_}
+        self.files[file_.name] = file_
         #self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
         self.setPriority(index, 1)
         return file_
