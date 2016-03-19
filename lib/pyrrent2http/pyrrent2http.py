@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys, os
-import json
+import os
 import chardet
 
 try:
@@ -19,7 +18,7 @@ except Exception, e:
 
 from random import SystemRandom
 import time
-import urlparse, urllib
+import urllib
 import BaseHTTPServer
 import SocketServer
 import threading
@@ -90,7 +89,8 @@ if not hasattr(os, 'getppid'):
 
 AVOID_HTTP_SERVER_EXCEPTION_OUTPUT = True
 VERSION = "0.6.0"
-USER_AGENT = "pyrrent2http/" + VERSION + " libtorrent/" + lt.version
+#USER_AGENT = "pyrrent2http/" + VERSION + " libtorrent/" + lt.version
+USER_AGENT = 'libtorrent/1.0.9.0'
 
 VIDEO_EXTS={'.avi':'video/x-msvideo','.mp4':'video/mp4','.mkv':'video/x-matroska',
 '.m4v':'video/mp4','.mov':'video/quicktime', '.mpg':'video/mpeg','.ogv':'video/ogg',
@@ -168,7 +168,7 @@ class TorrentFile(object):
             self.filePtr = io.open(self.save_path, 'rb')
         return self.filePtr
     def log(self, message):
-        fnum = self.index
+        fnum = self.tfs.openedFiles.index(self)
         logging.info("[%d] %s\n" % (fnum, message))
     def Pieces(self):
         startPiece, _ = self.pieceFromOffset(1)
@@ -267,8 +267,9 @@ class TorrentFS(object):
         self.waitForMetadata()
         self.save_path = localize_path(self.root.torrentParams['save_path'])
         self.priorities = list(self.handle.file_priorities())
-        self.files = self.__files_()
-        self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
+        file_ = self.__file_at_(startIndex)
+        self.files = {file_.name: file_}
+        #self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
         if startIndex < 0:
             logging.info('No -file-index specified, downloading will be paused until any file is requested')
 
@@ -313,9 +314,9 @@ class TorrentFS(object):
         return self.info is not None
     def LoadFileProgress(self):
         self.progresses = self.handle.file_progress()
-        for i, f in enumerate(self.files):
-            f.downloaded = self.getFileDownloadedBytes(i)
-            if f.size > 0: f.progress = float(f.downloaded)/float(f.size)
+        for k in self.files.keys():
+            self.files[k].downloaded = self.getFileDownloadedBytes(self.files[k].index)
+            if self.files[k].size > 0: self.files[k].progress = float(self.files[k].downloaded) / float(self.files[k].size)
     def getFileDownloadedBytes(self, i):
         try:
             bytes_ = self.progresses[i]
@@ -344,10 +345,9 @@ class TorrentFS(object):
                            index
                            )
     def FileByName(self, name):
-        savePath = os.path.abspath(os.path.join(self.save_path, localize_path(name)))
-        for file_ in self.files:
-            if file_.save_path == savePath:
-                return file_
+        for i, f in enumerate(self.info.files()):
+            if f.path == name:
+                return self.__file_at_(i)
         raise IOError
     def Open(self, name):
         if self.shuttingDown or not self.HasTorrentInfo():
@@ -372,11 +372,12 @@ class TorrentFS(object):
         tf.closed = False
         self.fileCounter += 1
         tf.num = self.fileCounter
-        tf.log('Opening %s...' % (tf.name,))
+        self.addOpenedFile(tf)
+        tf.log('Opened %s...' % (tf.name,))
         tf.SetPriority(1)
         self.handle.set_piece_deadline(tf.startPiece, 50)
         self.lastOpenedFile = tf
-        self.addOpenedFile(tf)
+        self.files[tf.name] = tf
         self.checkPriorities()
         return tf
         
@@ -393,23 +394,6 @@ def HttpHandlerFactory():
         def do_GET(self):
             #print ('---Headers---\n%s\n' % (self.headers,))
             #print ('---Request---\n%s\n' % (self.path,))
-            '''if self.path == '/status':
-                self.statusHandler()
-            elif self.path == '/ls':
-                self.lsHandler()
-            elif self.path == '/peers':
-                self.peersHandler()
-            elif self.path == '/trackers':
-                self.trackersHandler()
-            elif self.path.startswith('/get/'):   # Неясно, зачем
-                return 
-            #    self.getHandler()                # этот запрос?
-            elif self.path == '/shutdown':
-                self.server.root_obj.forceShutdown = True
-                self.server.server_close()
-                self.end_headers()
-                self.wfile.write('OK')
-            elif self.path.startswith('/files/'):'''
             if self.path.startswith('/files/'):
                 self.filesHandler()
             else:
@@ -471,56 +455,6 @@ def HttpHandlerFactory():
             self.end_headers()
             #print "Sending Bytes ",start_range, " to ", end_range, "...\n"
             return (f, start_range, end_range)
-        '''def statusHandler(self):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            status = self.server.root_obj.Status()
-            output = json.dumps(status)
-            self.wfile.write(output)'''
-        '''def lsHandler(self):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            retFiles = self.server.root_obj.Ls()
-            output = json.dumps(retFiles)
-            self.wfile.write(output)'''
-        '''def peersHandler(self):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            peers = self.server.root_obj.Peers()
-            output = json.dumps(peers)
-            self.wfile.write(output)'''
-        '''def trackersHandler(self):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            ret = list()
-            try:
-                info = self.server.root_obj.torrentHandler.torrent_file()
-            except:
-                info = self.server.root_obj.torrentHandler.get_torrent_info()
-            for tracker in info.trackers():
-                pi = {
-                        'Url':                tracker.url,
-                        'NextAnnounceIn':        self.server.root_obj.torrentHandler.status().next_announce.seconds,
-                        'MinAnnounceIn':        10, # FIXME неясно, откуда брать
-                        'ErrorCode':            0, #FIXME неясно, откуда брать
-                        'ErrorMessage':        u'', #FIXME неясно, откуда брать
-                        'Message':            u'', #FIXME неясно, откуда брать
-                        'Tier':                tracker.tier,
-                        'FailLimit':            tracker.fail_limit,
-                        'Fails':                tracker.fails,
-                        'Source':                tracker.source,
-                        'Verified':            tracker.verified,
-                        'Updating':            tracker.updating,
-                        'StartSent':            tracker.start_sent,
-                        'CompleteSent':        tracker.complete_sent,
-                        }
-                ret.append(pi)
-            output = json.dumps(ret)
-            self.wfile.write(output)'''
         # Вырубаем access-log
         def log_message(self, format, *args):
             return
@@ -805,16 +739,17 @@ class Pyrrent2http(object):
         retFiles = {'files': []}
         if self.TorrentFS.HasTorrentInfo():
             files = self.TorrentFS.files
-            for file_ in files:
-                Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(file_.name)
+            for name in files.keys():
+                Url = 'http://' + self.config.bindAddress + '/files/' + urllib.quote(name)
                 fi = {
-                      'name':       file_.unicode_name,
-                      'media_type': file_.media_type,
-                      'size':       file_.size,
-                      'offset':     file_.offset,
-                      'download':   file_.downloaded,
-                      'progress':   file_.progress,
-                      'save_path':  file_.save_path,
+                      'index':      files[name].index,
+                      'name':       files[name].unicode_name,
+                      'media_type': files[name].media_type,
+                      'size':       files[name].size,
+                      'offset':     files[name].offset,
+                      'download':   files[name].downloaded,
+                      'progress':   files[name].progress,
+                      'save_path':  files[name].save_path,
                       'url':        Url
                       }
                 retFiles['files'].append(fi)
@@ -837,7 +772,7 @@ class Pyrrent2http(object):
                    }
             peers['peers'].append(pi)
         return peers
-    def stats(self):
+    '''def stats(self):
         status = self.torrentHandle.status()
         dhtStatusStr = ''
         if not status.has_metadata:
@@ -865,7 +800,7 @@ class Pyrrent2http(object):
                 logging.info(str_)
             if (self.config.showPiecesProgress or self.config.showAllStats) and self.TorrentFS.lastOpenedFile != None:
                 self.TorrentFS.lastOpenedFile.ShowPieces()
-
+'''
     def consumeAlerts(self):
         alerts = self.session.pop_alerts()
         for alert in alerts:
@@ -883,7 +818,7 @@ class Pyrrent2http(object):
                 if type(alert) == alert_type:
                     return alert
     def loop(self):
-        self.statsTicker = Ticker(30)
+        #self.statsTicker = Ticker(30)
         self.saveResumeDataTicker = Ticker(5)
         time_start = time.time()
         while True:
@@ -898,8 +833,8 @@ class Pyrrent2http(object):
                 if os.getppid() == 1:
                     self.forceShutdown = True
                 time_start = time.time()
-            if self.statsTicker.true:
-                self.stats()
+            #if self.statsTicker.true:
+            #    self.stats()
             if self.saveResumeDataTicker.true:
                 self.saveResumeData(True)
             time.sleep(0.3)
@@ -954,10 +889,12 @@ class Pyrrent2http(object):
     def filesToRemove(self):
         files = []
         if self.TorrentFS.HasTorrentInfo():
-            for file in self.TorrentFS.files:
-                if (not self.config.keepComplete or not file.IsComplete()) and (not self.config.keepIncomplete or file.IsComplete()):
-                    if os.path.exists(file.save_path):
-                        files.append(file.save_path)
+            for i, f in enumerate(self.torrentHandle.files()):
+                isComplete = self.TorrentFS.progresses[i] == f.size
+                if (not self.config.keepComplete or not isComplete) and (not self.config.keepIncomplete or isComplete):
+                    path = os.path.abspath(os.path.join(self.TorrentFS.save_path, localize_path(f.path)))
+                    if os.path.exists(path):
+                        files.append(path)
         return files
     def removeTorrent(self):
         files = []
@@ -977,7 +914,7 @@ class Pyrrent2http(object):
     def shutdown(self):
         logging.info('Stopping pyrrent2http...')
         self.forceShutdown = True
-        self.statsTicker.stop()
+        #self.statsTicker.stop()
         self.saveResumeDataTicker.stop()
         self.httpListener.shutdown()
         self.TorrentFS.Shutdown()

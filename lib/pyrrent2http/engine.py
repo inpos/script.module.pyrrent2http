@@ -6,8 +6,10 @@ import pyrrent2http
 import xbmc
 from error import Error
 from . import SessionStatus, FileStatus, PeerInfo, Encryption
-from util import can_bind, find_free_port, localize_path, uri2path
+from util import can_bind, find_free_port, localize_path, uri2path, detect_media_type
 import threading
+import urllib
+import chardet
 
 LOGGING = True
 
@@ -286,7 +288,7 @@ class Engine:
             if media_types is not None:
                 res = filter(lambda fs: fs.media_type in media_types, res)
             return res
-    def list_from_info(self):
+    def list_from_info(self, media_types=None):
         try:
             info = pyrrent2http.lt.torrent_info(uri2path(self.uri))
         except:
@@ -294,18 +296,21 @@ class Engine:
         files = []
         for i in range(info.num_files()):
             f = info.file_at(i)
+            Url = 'http://' + "%s:%s" % (self.bind_host, self.bind_port) + '/files/' + urllib.quote(f.path)
             files.append({
                      'name':    localize_path(f.path),
                      'size':    f.size,
                      'offset':  f.offset,
-                     'media_type': '',
+                     'media_type': media_types and detect_media_type(f.path.decode(chardet.detect(f.path)['encoding'])) or '',
                      'download':   0,
                      'progress':   0.0,
                      'save_path':  '',
-                     'url':        ''
+                     'url':        Url
                      })
         if files:
             res = [FileStatus(index=index, **f) for index, f in enumerate(files)]
+        if media_types is not None:
+                res = filter(lambda fs: fs.media_type in media_types, res)
         return res
 
     def file_status(self, file_index, timeout=10):
@@ -319,12 +324,12 @@ class Engine:
         :return: File with specified index
         :rtype: FileStatus
         """
-        res = self.list(timeout=timeout)
-        if res:
-            try:
-                return res[file_index]
-            except IndexError:
-                raise Error("Requested file index (%d) is invalid" % (file_index,), Error.INVALID_FILE_INDEX,
+        files = self.pyrrent2http.Ls()['files']
+        if files:
+            for f in files:
+                if f['index'] == file_index:
+                    return FileStatus(**f)
+            raise Error("Requested file index (%d) is invalid" % (file_index,), Error.INVALID_FILE_INDEX,
                             file_index=file_index)
 
     def peers(self, timeout=10):
