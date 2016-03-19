@@ -169,7 +169,7 @@ class TorrentFile(object):
         return self.filePtr
     def log(self, message):
         fnum = self.tfs.openedFiles.index(self)
-        logging.info("[%d] %s\n" % (fnum, message))
+        logging.info("[Thread No.%d] %s\n" % (fnum, message))
     def Pieces(self):
         startPiece, _ = self.pieceFromOffset(1)
         endPiece, _ = self.pieceFromOffset(self.size - 1)
