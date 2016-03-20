@@ -272,6 +272,9 @@ class TorrentFS(object):
         for i in range(num_files):
             self.setPriority(i, 0)
     def file(self, index):
+        for name in self.files.keys():
+            if self.files[name].index == index:
+                return self.files[name]
         file_ = self.__file_at_(index)
         self.files[file_.name] = file_
         #self.handle.set_piece_deadline(self.files[startIndex].startPiece, 50)
