@@ -49,14 +49,14 @@ def unicode_msg(tmpl, args):
     return msg % tuple(arg_)
 
 def encode_msg(msg):
-    msg = isinstance(msg, unicode) and msg.encode(True and sys.getfilesystemencoding() or 'utf-8') or msg
+    msg = isinstance(msg, unicode) and msg.encode(sys.getfilesystemencoding() != 'ascii' and sys.getfilesystemencoding() or 'utf-8') or msg
     return msg
     
 
 def localize_path(path):
     if not isinstance(path, unicode): path = path.decode(chardet.detect(path)['encoding'])
     if not sys.platform.startswith('win'):
-        path = path.encode(True and sys.getfilesystemencoding() or 'utf-8')
+        path = path.encode(sys.getfilesystemencoding() != 'ascii' and sys.getfilesystemencoding() or 'utf-8')
     return path
 
 def can_bind(host, port):
