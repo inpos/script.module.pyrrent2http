@@ -247,6 +247,11 @@ class Engine:
 
     def activate_file(self, index):
         self.pyrrent2http.TorrentFS.file(index)
+    
+    def pause(self):
+        self.pyrrent2http.pause = True
+    def resume(self):
+        self.pyrrent2http.pause = False
 
     def check_torrent_error(self, status=None):
         """

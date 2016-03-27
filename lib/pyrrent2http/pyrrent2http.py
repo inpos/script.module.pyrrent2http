@@ -412,6 +412,9 @@ def HttpHandlerFactory():
                         buf = bytearray(chunk)
                     try:
                         if f.Read(buf) < 1: break
+                        while self.server.root_obj.pause:
+                            time.sleep(0.1)
+                            continue
                         self.wfile.write(buf)
                     except:
                         break
@@ -461,6 +464,7 @@ def HttpHandlerFactory():
     return HttpHandler
 
 class Pyrrent2http(object):
+    pause = False
     def __init__(self, uri = '', bindAddress = 'localhost:5001', downloadPath = '.',
                     idleTimeout = -1, keepComplete = False, 
                     keepIncomplete = False, keepFiles = False, showAllStats = False, 
