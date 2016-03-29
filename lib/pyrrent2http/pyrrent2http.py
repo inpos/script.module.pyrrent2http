@@ -177,7 +177,7 @@ class TorrentFile(object):
     def SetPriority(self, priority):
         self.tfs.setPriority(self.index, priority)
     def readOffset(self):
-        return self.filePtr.seek(0, io.SEEK_CUR)
+        return self.filePtr.seek(0, os.SEEK_CUR)
     def havePiece(self, piece):
         return self.tfs.handle.have_piece(piece)
     def pieceFromOffset(self, offset):
