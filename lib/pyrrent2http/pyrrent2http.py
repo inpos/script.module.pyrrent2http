@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
+import os, sys
 import chardet
 
 try:
@@ -25,6 +25,17 @@ import threading
 import io
 from util import localize_path, Struct, detect_media_type, uri2path, encode_msg
 
+
+
+if os.getenv('ANDROID_ROOT'):
+    from ctypes import *
+    libc = CDLL('/system/lib/libc.so')
+    libc.lseek64.restype = c_ulonglong
+    libc.lseek64.argtypes = [c_uint, c_ulonglong, c_uint]
+    libc.read.restype = c_long
+    libc.read.argtypes = [c_uint, c_void_p, c_long]
+    O_RDONLY = 0
+    O_LARGEFILE = 0x8000
 
 ######################################################################################
 
@@ -165,7 +176,10 @@ class TorrentFile(object):
                 logging.info('Waiting for file: %s' % (self.save_path,))
                 self.tfs.handle.flush_cache()
                 time.sleep(0.5)
-            self.filePtr = io.open(self.save_path, 'rb')
+            if os.getenv('ANDROID_ROOT'):
+                self.filePtr = libc.open(self.save_path, O_RDONLY | O_LARGEFILE, 755)
+            else:
+                self.filePtr = io.open(self.save_path, 'rb')
         return self.filePtr
     def log(self, message):
         fnum = self.tfs.openedFiles.index(self)
@@ -177,7 +191,10 @@ class TorrentFile(object):
     def SetPriority(self, priority):
         self.tfs.setPriority(self.index, priority)
     def readOffset(self):
-        return self.filePtr.seek(0, os.SEEK_CUR)
+        if os.getenv('ANDROID_ROOT'):
+            return libc.lseek64(self.filePtr, 0, os.SEEK_CUR)
+        else:
+            return self.filePtr.seek(0, os.SEEK_CUR)
     def havePiece(self, piece):
         return self.tfs.handle.have_piece(piece)
     def pieceFromOffset(self, offset):
@@ -210,7 +227,10 @@ class TorrentFile(object):
         self.tfs.removeOpenedFile(self)
         self.closed = True
         if self.filePtr is not None:
-            self.filePtr.close()
+            if os.getenv('ANDROID_ROOT'):
+                libc.close(self.filePtr)
+            else:
+                self.filePtr.close()
             self.filePtr = None
     def ShowPieces(self):
         pieces = self.tfs.handle.status().pieces
@@ -234,7 +254,10 @@ class TorrentFile(object):
         for i in range(startPiece,  endPiece + 1):
             if not self.waitForPiece(i):
                 raise IOError
-        read = filePtr.readinto(buf)
+        if os.getenv('ANDROID_ROOT'):
+            read = libc.read(self.filePtr, addressof(buf), toRead)
+        else:
+            read = filePtr.readinto(buf)
         return read
     def Seek(self, offset, whence):
         filePtr = self.__fileptr_()
@@ -242,7 +265,10 @@ class TorrentFile(object):
         if whence == os.SEEK_END:
             offset = self.size - offset
             whence = os.SEEK_SET
-        newOffset = filePtr.seek(offset, whence)
+        if os.getenv('ANDROID_ROOT'):
+            newOffset = libc.lseek64(self.filePtr, offset, whence)
+        else:
+            newOffset = filePtr.seek(offset, whence)
         self.log('Seeking to %d/%d' % (newOffset, self.size))
         return newOffset
     def IsComplete(self):
@@ -405,17 +431,26 @@ def HttpHandlerFactory():
                 f.Seek(start_range, 0)
                 chunk = f.piece_length
                 total = 0
-                buf = bytearray(chunk)
+                if os.getenv('ANDROID_ROOT'):
+                    buf = create_string_buffer(chunk)
+                else:
+                    buf = bytearray(chunk)
                 while chunk > 0:
                     if start_range + chunk > end_range:
                         chunk = end_range - start_range
-                        buf = bytearray(chunk)
+                        if os.getenv('ANDROID_ROOT'):
+                            buf = create_string_buffer(chunk)
+                        else:
+                            buf = bytearray(chunk)
                     try:
                         if f.Read(buf) < 1: break
                         while self.server.root_obj.pause:
                             time.sleep(0.1)
                             continue
-                        self.wfile.write(buf)
+                        if os.getenv('ANDROID_ROOT'):
+                            self.wfile.write(buf.raw)
+                        else:
+                            self.wfile.write(buf)
                     except:
                         break
                     total += chunk
