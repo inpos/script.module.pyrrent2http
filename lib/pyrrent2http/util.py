@@ -56,7 +56,7 @@ def encode_msg(msg):
 def localize_path(path):
     if not isinstance(path, unicode): path = path.decode(chardet.detect(path)['encoding'])
     if not sys.platform.startswith('win'):
-        path = path.encode(sys.getfilesystemencoding() != 'ascii' and sys.getfilesystemencoding() or 'utf-8')
+        path = path.encode((sys.getfilesystemencoding() not in ('ascii', 'ANSI_X3.4-1968')) and sys.getfilesystemencoding() or 'utf-8')
     return path
 
 def can_bind(host, port):
