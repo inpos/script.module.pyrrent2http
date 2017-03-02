@@ -115,7 +115,7 @@ class Ticker(object):
         self.interval   = interval
         self.is_running = False
         self.start()
-
+    @property
     def true(self):
         if self.tick:
             self.tick = False
